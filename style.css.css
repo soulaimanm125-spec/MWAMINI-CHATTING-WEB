@@ -1,288 +1,124 @@
+/* Reset and Core Layout */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background-color: #d8c292; /* Rich Gold Hint */
+    /* Premium dual-color background: Deep green top bar, soft gold/beige bottom */
+    background: linear-gradient(to bottom, #005c4b 222px, #eae6df 222px);
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+/* Auth Center Container */
 .auth-container {
     display: flex;
     justify-content: center;
+    align-items: center;
     width: 100%;
     padding: 20px;
 }
 
+/* Upgraded Sleek Card UI */
 .auth-card {
     background: #ffffff;
     padding: 40px;
-    border-radius: 12px;
+    border-radius: 8px;
     width: 100%;
-    max-w: 420px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border-top: 5px solid #005c4b; /* WhatsApp Emerald Green */
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border-top: 6px solid #cfb53b; /* Premium Gold Top Accent */
+    text-align: center;
 }
 
 .brand-title {
-    color: #005c4b;
-    text-align: center;
-    margin-bottom: 24px;
-    font-size: 26px;
+    color: #005c4b; /* WhatsApp Green */
+    margin-bottom: 28px;
+    font-size: 32px;
     font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
+/* Beautiful Input Fields */
 .input-group {
-    margin-bottom: 16px;
+    margin-bottom: 18px;
+    text-align: left;
 }
 
 .input-group input {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #cccccc;
+    padding: 14px 16px;
+    border: 1px solid #e1e1e1;
     border-radius: 6px;
     font-size: 15px;
+    background-color: #fafafa;
     outline: none;
+    transition: all 0.3s ease;
 }
 
 .input-group input:focus {
-    border-color: #cfb53b; /* Gold Outline Accent */
-    box-shadow: 0 0 5px rgba(207, 181, 59, 0.4);
+    border-color: #005c4b;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 92, 75, 0.15);
 }
 
+/* Polished Button */
 .btn-primary {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     background-color: #005c4b;
-    color: #cfb53b; /* Gold Text Accent */
+    color: #ffffff;
     border: none;
     border-radius: 6px;
-    font-weight: bold;
+    font-weight: 600;
     font-size: 16px;
     cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn-primary:hover {
     background-color: #004d3f;
 }
 
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+/* Mode Switcher Text */
 .toggle-text {
-    text-align: center;
-    margin-top: 20px;
+    margin-top: 24px;
     font-size: 14px;
-    color: #555555;
+    color: #667781;
 }
 
 .btn-link {
     background: none;
     border: none;
     color: #005c4b;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+.btn-link:hover {
     text-decoration: underline;
 }
 
 .error-text {
-    color: #d32f2f;
-    font-size: 13px;
+    color: #ea0038;
+    font-size: 14px;
     margin-bottom: 15px;
-    text-align: center;
-}
-
-.hidden { display: none !important; }
-
-/* Dashboard Platform Window Frame Layout */
-.app-window {
-    width: 96vw;
-    height: 92vh;
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
-    display: flex;
-    overflow: hidden;
-}
-
-.sidebar {
-    width: 30%;
-    min-width: 320px;
-    border-right: 1px solid #e9edef;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-header {
-    background-color: #005c4b;
-    padding: 16px 20px;
-    color: #cfb53b;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.btn-logout {
-    background: none;
-    border: 1px solid #cfb53b;
-    color: #cfb53b;
-    padding: 6px 14px;
-    border-radius: 4px;
-    cursor: pointer;
     font-weight: 500;
 }
 
-.btn-logout:hover {
-    background: #cfb53b;
-    color: #005c4b;
-}
-
-.search-box {
-    padding: 12px;
-    background-color: #f0f2f5;
-}
-
-.search-box input {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid #e9edef;
-    outline: none;
-}
-
-.user-list {
-    flex: 1;
-    overflow-y: auto;
-}
-
-.user-item {
-    display: flex;
-    align-items: center;
-    padding: 14px 20px;
-    border-bottom: 1px solid #f0f2f5;
-    cursor: pointer;
-}
-
-.user-item:hover {
-    background-color: #f5f6f6;
-}
-
-.avatar {
-    width: 44px;
-    height: 44px;
-    background: #005c4b;
-    color: #cfb53b;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: 700;
-    margin-right: 14px;
-}
-
-.user-info h4 {
-    color: #111b21;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.user-info p {
-    color: #667781;
-    font-size: 13px;
-    margin-top: 2px;
-}
-
-.chat-panel {
-    width: 70%;
-    background-color: #efeae2;
-    display: flex;
-    flex-direction: column;
-}
-
-.welcome-screen {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #667781;
-    text-align: center;
-}
-
-.welcome-screen h1 {
-    color: #005c4b;
-    margin-bottom: 8px;
-}
-
-.chat-area {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.chat-header {
-    background: #f0f2f5;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e9edef;
-}
-
-.message-stream {
-    flex: 1;
-    padding: 24px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.message-bubble {
-    max-width: 65%;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14.5px;
-    line-height: 1.4;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-}
-
-.message-bubble.sent {
-    background-color: #d9fdd3;
-    align-self: flex-end;
-    border-top-right-radius: 0;
-}
-
-.message-bubble.received {
-    background-color: #ffffff;
-    align-self: flex-start;
-    border-top-left-radius: 0;
-}
-
-.chat-input-bar {
-    background: #f0f2f5;
-    padding: 12px 24px;
-}
-
-.chat-input-bar form {
-    display: flex;
-    gap: 12px;
-}
-
-.chat-input-bar input {
-    flex: 1;
-    padding: 12px 18px;
-    border-radius: 8px;
-    border: none;
-    outline: none;
-}
-
-.btn-send {
-    background-color: #005c4b;
-    color: #cfb53b;
-    border: none;
-    padding: 0 24px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
+/* Helper Class */
+.hidden { 
+    display: none !important; 
 }
