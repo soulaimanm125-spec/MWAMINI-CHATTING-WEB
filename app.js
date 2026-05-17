@@ -3,7 +3,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, on
 import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// 1. Core Firebase Web Credentials
+// 1. Firebase Core Credentials
 const firebaseConfig = {
   apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
   authDomain: "mwamini-chatting-web.firebaseapp.com",
@@ -25,7 +25,7 @@ let activeChatId = null;
 let unsubscribeMessages = null;
 
 // ========================================================
-// 3. AUTHENTICATION ENGINE (Open Registration System)
+// 3. AUTHENTICATION ENGINE
 // ========================================================
 export function initAuthPage() {
     let isRegisterMode = false;
@@ -69,10 +69,12 @@ export function initAuthPage() {
                         uid: credentials.user.uid,
                         name: name || email.split("@")[0],
                         email: email,
-                        status: "Hey there! I am using Mwamini Chat." // Default status payload
+                        status: "Hey there! I am using Mwamini Chat.",
+                        isOnline: true
                     });
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    const credentials = await signInWithEmailAndPassword(auth, email, password);
+                    await updateDoc(doc(db, "users", credentials.user.uid), { isOnline: true });
                 }
             } catch (error) {
                 errorMsg.innerText = error.message;
@@ -82,7 +84,7 @@ export function initAuthPage() {
 }
 
 // ========================================================
-// 4. MESSENGER CORE ENGINE & STATUS CONTROLLER
+// 4. MESSENGER ENGINE (Texts, Active Users & Multi-Files)
 // ========================================================
 export function initDashboardPage() {
     onAuthStateChanged(auth, async (user) => {
@@ -91,7 +93,9 @@ export function initDashboardPage() {
         } else {
             currentUser = user;
             
-            // Listen real-time to current user's profile data (to keep own status updated instantly)
+            // Set dynamic connection status to true on log state presence trigger
+            await updateDoc(doc(db, "users", user.uid), { isOnline: true });
+
             onSnapshot(doc(db, "users", user.uid), (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -104,27 +108,30 @@ export function initDashboardPage() {
         }
     });
 
-    // Custom Status Input Box Logic
+    // Custom Status Changer Handler Button Hook
     document.getElementById("update-status-btn")?.addEventListener("click", async () => {
         const inputField = document.getElementById("status-input");
         const newStatus = inputField.value.trim();
         if (!newStatus) return;
 
         try {
-            await updateDoc(doc(db, "users", currentUser.uid), {
-                status: newStatus
-            });
+            await updateDoc(doc(db, "users", currentUser.uid), { status: newStatus });
             inputField.value = "";
-            alert("Your WhatsApp status has been updated successfully!");
+            alert("Status updated!");
         } catch (error) {
-            console.error("Error writing status object: ", error);
+            console.error("Error writing user status: ", error);
         }
     });
 
-    document.getElementById("logout-btn")?.addEventListener("click", () => {
+    // Logout Process (Sets presence flag status to false cleanly before session dropped)
+    document.getElementById("logout-btn")?.addEventListener("click", async () => {
+        if (currentUser) {
+            await updateDoc(doc(db, "users", currentUser.uid), { isOnline: false });
+        }
         signOut(auth).then(() => { window.location.href = "index.html"; });
     });
 
+    // Text Dispatch Submissions Handler
     document.getElementById("message-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("message-input");
@@ -140,29 +147,36 @@ export function initDashboardPage() {
         });
     });
 
+    // Unified Media Upload Handler (Processes Images, Videos, Audio, and Documents)
     document.getElementById("file-input")?.addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file || !activeChatId) return;
 
         const uploadStatusBar = document.getElementById("chat-header-name");
         const originalTitle = uploadStatusBar.innerText;
-        uploadStatusBar.innerText = "🔄 Uploading file...";
+        uploadStatusBar.innerText = "🔄 Uploading attachment payload...";
 
         try {
             const storagePathRef = ref(storage, `shared_files/${activeChatId}/${Date.now()}_${file.name}`);
             const snapshot = await uploadBytes(storagePathRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
 
+            // Dynamically check file type structure extensions
+            let fileTypeMetadata = "document";
+            if (file.type.startsWith("image/")) fileTypeMetadata = "image";
+            else if (file.type.startsWith("video/")) fileTypeMetadata = "video";
+            else if (file.type.startsWith("audio/")) fileTypeMetadata = "audio";
+
             await addDoc(collection(db, "chats", activeChatId, "messages"), {
                 text: file.name,
                 fileUrl: downloadURL,
-                type: file.type.startsWith("image/") ? "image" : "document",
+                type: fileTypeMetadata,
                 senderId: currentUser.uid,
                 createdAt: serverTimestamp()
             });
         } catch (error) {
-            alert("File upload failed: " + error.message);
-        } finally {
+            alert("Media attachment drop failed: " + error.message);
+        } disable {
             uploadStatusBar.innerText = originalTitle;
         }
     });
@@ -179,10 +193,21 @@ function loadWhatsAppSidebar() {
             if (userData.uid !== currentUser.uid) {
                 const item = document.createElement("div");
                 item.className = "wa-user-item";
+                
+                // Add online badge classes conditionally based on presence updates
+                const activeBadgeClass = userData.isOnline ? "badge-online" : "badge-offline";
+                const activeTextString = userData.isOnline ? "● Online" : "Offline";
+
                 item.innerHTML = `
-                    <div class="wa-avatar">${userData.name.charAt(0).toUpperCase()}</div>
+                    <div class="wa-avatar-container">
+                        <div class="wa-avatar">${userData.name.charAt(0).toUpperCase()}</div>
+                        <span class="presence-dot ${activeBadgeClass}"></span>
+                    </div>
                     <div class="wa-user-info">
-                        <h4>${userData.name}</h4>
+                        <div class="wa-user-header-row">
+                            <h4>${userData.name}</h4>
+                            <span class="presence-status-text ${activeBadgeClass}">${activeTextString}</span>
+                        </div>
                         <p class="wa-user-status-text">💬 ${userData.status || 'Available'}</p>
                     </div>
                 `;
@@ -227,15 +252,20 @@ function listenToWhatsAppMessages() {
             
             let messageContentHTML = "";
             
+            // Core Conditional Engine to render the correct type of shared media element
             if (msg.type === "image") {
                 messageContentHTML = `<img src="${msg.fileUrl}" class="shared-media-img" alt="Shared Image" onclick="window.open('${msg.fileUrl}')">`;
+            } else if (msg.type === "video") {
+                messageContentHTML = `<video src="${msg.fileUrl}" controls class="shared-media-video"></video>`;
+            } else if (msg.type === "audio") {
+                messageContentHTML = `<audio src="${msg.fileUrl}" controls class="shared-media-audio"></audio>`;
             } else if (msg.type === "document") {
                 messageContentHTML = `
                     <div class="shared-doc-box" onclick="window.open('${msg.fileUrl}')">
                         <span>📄</span>
                         <div class="doc-details">
                             <p class="doc-name">${msg.text}</p>
-                            <small>Click to view file</small>
+                            <small>Click to view document file</small>
                         </div>
                     </div>`;
             } else {
