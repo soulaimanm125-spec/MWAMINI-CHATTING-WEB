@@ -11,7 +11,7 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <span id="current-user-title">Profile Loading...</span>
+                    <span id="current-user-title">Verifying Access...</span>
                 </div>
                 <button id="logout-btn" class="btn-logout">Logout</button>
             </header>
@@ -25,18 +25,21 @@
             <div id="no-chat-selected" class="welcome-screen">
                 <div class="welcome-banner">🌐</div>
                 <h2>MWAMINI CHAT WEB</h2>
-                <p>Send and receive secure messages in real time without keeping your phone online.</p>
+                <p>Send secure files and real-time text streams across an end-to-end controlled dashboard.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
                 <header class="chat-header">
                     <h3 id="chat-header-name">Active User</h3>
-                    <span class="online-status">online</span>
+                    <span class="online-status">secure session channel</span>
                 </header>
                 
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
+                    <input type="file" id="file-input" class="hidden">
+                    <label for="file-input" class="file-attach-btn">📎</label>
+
                     <form id="message-form">
                         <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
                         <button type="submit" class="btn-send">Send</button>
