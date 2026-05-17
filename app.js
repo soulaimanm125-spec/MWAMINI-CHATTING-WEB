@@ -3,7 +3,7 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, on
 import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// 1. Core Firebase Web Credentials (Ensure Storage Bucket is present)
+// 1. Core Firebase Web Credentials
 const firebaseConfig = {
   apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
   authDomain: "mwamini-chatting-web.firebaseapp.com",
@@ -25,28 +25,16 @@ let activeChatId = null;
 let unsubscribeMessages = null;
 
 // ========================================================
-// 3. SECURE RECRUITMENT ENGINE (Gatekeeps Outbound Access)
+// 3. AUTHENTICATION ENGINE (Allows Open Registration)
 // ========================================================
-async function isUserWhitelisted(email) {
-    // Queries a secure "allowed_users" collection you control in Firebase
-    const adminGateRef = doc(db, "allowed_users", email.toLowerCase().trim());
-    const gateSnap = await getDoc(adminGateRef);
-    return gateSnap.exists(); // Returns true only if you manually added them
-}
-
 export function initAuthPage() {
     let isRegisterMode = false;
 
+    // Persist login status across tab refreshes cleanly
     setPersistence(auth, browserLocalPersistence).then(() => {
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => {
             if (user) {
-                const whitelisted = await isUserWhitelisted(user.email);
-                if (whitelisted) {
-                    window.location.href = "dashboard.html";
-                } else {
-                    document.getElementById("error-message").innerText = "Access Denied: Your email is not whitelisted.";
-                    await signOut(auth);
-                }
+                window.location.href = "dashboard.html";
             }
         });
     });
@@ -78,23 +66,22 @@ export function initAuthPage() {
             const name = document.getElementById("auth-name").value;
 
             try {
-                // Security Checkpoint: Block registration or login instantly if not whitelisted
-                const allowed = await isUserWhitelisted(email);
-                if (!allowed) {
-                    throw new Error("Access Denied: You must be invited by an Administrator.");
-                }
-
                 if (isRegisterMode) {
+                    // Create account directly in Firebase Authentication
                     const credentials = await createUserWithEmailAndPassword(auth, email, password);
+                    
+                    // Create user profile document in Firestore
                     await setDoc(doc(db, "users", credentials.user.uid), {
                         uid: credentials.user.uid,
                         name: name || email.split("@")[0],
                         email: email
                     });
                 } else {
+                    // User sign in path
                     await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (error) {
+                // Clear and structured error messages shown to user
                 errorMsg.innerText = error.message;
             }
         });
@@ -109,14 +96,6 @@ export function initDashboardPage() {
         if (!user) {
             window.location.href = "index.html";
         } else {
-            // Secondary runtime check to kick out revoked accounts
-            const whitelisted = await isUserWhitelisted(user.email);
-            if (!whitelisted) {
-                await signOut(auth);
-                window.location.href = "index.html";
-                return;
-            }
-
             currentUser = user;
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
@@ -153,10 +132,10 @@ export function initDashboardPage() {
 
         const uploadStatusBar = document.getElementById("chat-header-name");
         const originalTitle = uploadStatusBar.innerText;
-        uploadStatusBar.innerText = "🔄 Uploading file sharing payload...";
+        uploadStatusBar.innerText = "🔄 Uploading file...";
 
         try {
-            // Uploads asset directly to a secure subfolder inside Firebase Storage Bucket
+            // Uploads file to Firebase Storage bucket using chat ID grouping
             const storagePathRef = ref(storage, `shared_files/${activeChatId}/${Date.now()}_${file.name}`);
             const snapshot = await uploadBytes(storagePathRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
@@ -235,7 +214,6 @@ function listenToWhatsAppMessages() {
             
             let messageContentHTML = "";
             
-            // Evaluates message type metadata for secure multimedia processing
             if (msg.type === "image") {
                 messageContentHTML = `<img src="${msg.fileUrl}" class="shared-media-img" alt="Shared Image" onclick="window.open('${msg.fileUrl}')">`;
             } else if (msg.type === "document") {
