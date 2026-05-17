@@ -7,12 +7,14 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstati
 const firebaseConfig = {
   apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
   authDomain: "mwamini-chatting-web.firebaseapp.com",
+  databaseURL: "https://mwamini-chatting-web-default-rtdb.firebaseio.com",
   projectId: "mwamini-chatting-web",
   storageBucket: "mwamini-chatting-web.firebasestorage.app",
   messagingSenderId: "640958885512",
   appId: "1:640958885512:web:2f9a636acc85534009b93d",
   measurementId: "G-SW9FBXX78G"
 };
+
 
 // 2. Initialize Instances
 const app = initializeApp(firebaseConfig);
