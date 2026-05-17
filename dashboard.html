@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messenger - Chats</title>
+    <title>MWAMINI CHAT WEB</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-window">
         <aside class="sidebar">
             <header class="sidebar-header">
-                <h1 id="current-user-title">Chats</h1>
+                <div class="user-profile">
+                    <span id="current-user-title">Profile Loading...</span>
+                </div>
                 <button id="logout-btn" class="btn-logout">Logout</button>
             </header>
             <div class="search-box">
-                <input type="text" id="search-users" placeholder="Search Messenger">
+                <input type="text" id="search-users" placeholder="Search or start new chat">
             </div>
             <div class="user-list" id="users-container"></div>
         </aside>
 
         <main class="chat-panel">
             <div id="no-chat-selected" class="welcome-screen">
-                <div class="welcome-logo">💬</div>
-                <h2>No Chat Selected</h2>
-                <p>Choose a contact from the sidebar to begin messaging in real time.</p>
+                <div class="welcome-banner">🌐</div>
+                <h2>MWAMINI CHAT WEB</h2>
+                <p>Send and receive secure messages in real time without keeping your phone online.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
                 <header class="chat-header">
-                    <h3 id="chat-header-name">Active Conversation</h3>
-                    <span class="active-status-badge">Active now</span>
+                    <h3 id="chat-header-name">Active User</h3>
+                    <span class="online-status">online</span>
                 </header>
                 
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
                     <form id="message-form">
-                        <input type="text" id="message-input" placeholder="Aa" autocomplete="off">
+                        <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
                         <button type="submit" class="btn-send">Send</button>
                     </form>
                 </footer>
