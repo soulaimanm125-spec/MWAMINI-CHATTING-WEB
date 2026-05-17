@@ -4,7 +4,6 @@ import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, addDo
 
 // 1. Firebase Configuration Profile
 const firebaseConfig = {
-const firebaseConfig = {
   apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
   authDomain: "mwamini-chatting-web.firebaseapp.com",
   projectId: "mwamini-chatting-web",
@@ -14,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-SW9FBXX78G"
 };
 
-// 2. Initialize Core Services
+// 2. Initialize Firebase Web Services
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -23,17 +22,13 @@ let currentUser = null;
 let activeChatId = null;
 let unsubscribeMessages = null;
 
-// Export instances to windows context so page-specific code can access it if needed
-window.firebaseAuth = auth;
-window.firebaseDb = db;
-
 // ==========================================
 // 3. AUTHENTICATION ENGINE (index.html)
 // ==========================================
 export function initAuthPage() {
     let isRegisterMode = false;
 
-    // Persist logins cleanly through browser tabs and page refreshes
+    // Securely persist login status across tab refreshes
     setPersistence(auth, browserLocalPersistence).then(() => {
         onAuthStateChanged(auth, (user) => {
             if (user) window.location.href = "dashboard.html";
@@ -72,8 +67,7 @@ export function initAuthPage() {
                     await setDoc(doc(db, "users", credentials.user.uid), {
                         uid: credentials.user.uid,
                         name: name || email.split("@")[0],
-                        email: email,
-                        photoURL: ""
+                        email: email
                     });
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
@@ -86,7 +80,7 @@ export function initAuthPage() {
 }
 
 // ==========================================
-// 4. MESSENGER DASHBOARD ENGINE (dashboard.html)
+// 4. WHATSAPP WEB LOGIC (dashboard.html)
 // ==========================================
 export function initDashboardPage() {
     onAuthStateChanged(auth, async (user) => {
@@ -96,9 +90,9 @@ export function initDashboardPage() {
             currentUser = user;
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
-                document.getElementById("current-user-name").innerText = userDoc.data().name;
+                document.getElementById("current-user-title").innerText = userDoc.data().name;
             }
-            loadUsersSidebar();
+            loadWhatsAppSidebar();
         }
     });
 
@@ -121,8 +115,8 @@ export function initDashboardPage() {
     });
 }
 
-// Fetch all registered profile items in real time
-function loadUsersSidebar() {
+// Real-Time Sidebar Listener
+function loadWhatsAppSidebar() {
     const q = query(collection(db, "users"));
     onSnapshot(q, (snapshot) => {
         const container = document.getElementById("users-container");
@@ -132,27 +126,27 @@ function loadUsersSidebar() {
             const userData = userDoc.data();
             if (userData.uid !== currentUser.uid) {
                 const item = document.createElement("div");
-                item.className = "user-item";
+                item.className = "wa-user-item";
                 item.innerHTML = `
-                    <div class="avatar">${userData.name.charAt(0).toUpperCase()}</div>
-                    <div class="user-info">
+                    <div class="wa-avatar">${userData.name.charAt(0).toUpperCase()}</div>
+                    <div class="wa-user-info">
                         <h4>${userData.name}</h4>
                         <p>${userData.email}</p>
                     </div>
                 `;
-                item.addEventListener("click", () => startOrLoadChat(userData));
+                item.addEventListener("click", () => openWhatsAppChat(userData));
                 container.appendChild(item);
             }
         });
     });
 }
 
-// Unique Room Router logic preventing creation duplicates
-async function startOrLoadChat(targetUser) {
+// Open or Create Unique Sorted Chat Rooms
+async function openWhatsAppChat(targetUser) {
     activeChatId = [currentUser.uid, targetUser.uid].sort().join("_");
     document.getElementById("no-chat-selected").classList.add("hidden");
     document.getElementById("active-chat-area").classList.remove("hidden");
-    document.getElementById("active-user-title").innerText = targetUser.name;
+    document.getElementById("chat-header-name").innerText = targetUser.name;
 
     const chatRef = doc(db, "chats", activeChatId);
     const chatSnap = await getDoc(chatRef);
@@ -164,11 +158,11 @@ async function startOrLoadChat(targetUser) {
         });
     }
 
-    listenToMessageStream();
+    listenToWhatsAppMessages();
 }
 
-// Instantly pulls message subcollection items ordered by time
-function listenToMessageStream() {
+// Read Current Chat Stream Subcollection ordered by time
+function listenToWhatsAppMessages() {
     if (unsubscribeMessages) unsubscribeMessages();
 
     const mQuery = query(collection(db, "chats", activeChatId, "messages"), orderBy("createdAt", "asc"));
@@ -178,10 +172,10 @@ function listenToMessageStream() {
         stream.innerHTML = "";
         snapshot.forEach((msgDoc) => {
             const msg = msgDoc.data();
-            const bubble = document.createElement("div");
-            bubble.className = `message-bubble ${msg.senderId === currentUser.uid ? 'sent' : 'received'}`;
-            bubble.innerText = msg.text;
-            stream.appendChild(bubble);
+            const bubbleRow = document.createElement("div");
+            bubbleRow.className = `wa-message-row ${msg.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+            bubbleRow.innerHTML = `<div class="wa-bubble">${msg.text}</div>`;
+            stream.appendChild(bubbleRow);
         });
         stream.scrollTop = stream.scrollHeight;
     });
