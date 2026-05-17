@@ -18,13 +18,14 @@
             </header>
 
             <div class="status-updater-tray">
-                <input type="text" id="status-input" placeholder="Update your daily bio/status...">
+                <input type="text" id="status-input" placeholder="Update your WhatsApp status...">
                 <button id="update-status-btn">Save</button>
             </div>
 
             <div class="search-box">
                 <input type="text" id="search-users" placeholder="Search or start new chat">
             </div>
+            
             <div class="user-list" id="users-container"></div>
         </aside>
 
@@ -44,8 +45,8 @@
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
-                    <input type="file" id="file-input" class="hidden">
-                    <label for="file-input" class="file-attach-btn">📎</label>
+                    <input type="file" id="file-input" class="hidden" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                    <label for="file-input" class="file-attach-btn" title="Attach Media File">📎</label>
 
                     <form id="message-form">
                         <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
