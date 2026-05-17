@@ -11,24 +11,32 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <div id="my-profile-pic-container" style="cursor: pointer; position: relative; margin-right: 5px;">
+                    <div id="my-profile-pic-container" style="cursor: pointer; position: relative;" title="Click to upload profile photo">
                         <div class="wa-avatar" id="my-global-avatar-preview">M</div>
                         <input type="file" id="avatar-image-upload" style="display: none;" accept="image/*">
                     </div>
                     <div>
                         <h3 id="current-user-title">MWAMINI</h3>
-                        <p id="my-status-display" style="font-size: 12px; color: #667781; font-style: italic;">HI</p>
+                        <p id="my-status-display" style="font-size: 12px; color: #667781; font-style: italic;">Available</p>
                     </div>
                 </div>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <button id="create-group-btn" class="btn-group-action" style="background: #008069; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">+ Group</button>
-                    <button id="logout-btn" class="btn-logout">Leave Chat</button>
+                    <button id="logout-btn" class="btn-logout">Leave</button>
                 </div>
             </header>
 
-            <div class="status-updater-tray">
-                <input type="text" id="status-input" placeholder="Update your WhatsApp status...">
-                <button id="update-status-btn">Save</button>
+            <div class="status-updater-tray" style="flex-direction: column; gap: 5px; padding: 10px 16px; background: #f0f2f5;">
+                <div style="display: flex; gap: 5px; width: 100%;">
+                    <input type="text" id="status-input" placeholder="Update text status...">
+                    <button id="update-status-btn" style="background: #008069; color: white; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer;">Save</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 5px;">
+                    <span style="font-size: 11px; color: #667781; font-weight: bold;">Add Media Status:</span>
+                    <input type="file" id="status-media-upload" style="display: none;" accept="image/*,video/*">
+                    <button type="button" onclick="document.getElementById('status-media-upload').click()" style="background: #cfd8dc; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">📷/🎥 Upload Status</button>
+                </div>
+                <div id="active-statuses-view" style="display: flex; gap: 8px; overflow-x: auto; margin-top: 5px; padding: 4px 0;"></div>
             </div>
 
             <div class="search-box" style="display: flex; gap: 8px; align-items: center;">
@@ -43,31 +51,63 @@
             <div id="no-chat-selected" class="welcome-screen">
                 <div class="welcome-banner">🌐</div>
                 <h2>MWAMINI CHAT WEB</h2>
-                <p>Send secure files, voice recordings, and real-time text streams across an end-to-end controlled dashboard.</p>
+                <p>Send secure files, record voice notes, upload status media, or use Google Assistant tools instantly.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
-                <header class="chat-header">
-                    <h3 id="chat-header-name">MURIGO</h3>
-                    <span class="online-status">secure session channel</span>
+                <header class="chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px;">
+                    <div>
+                        <h3 id="chat-header-name">MURIGO</h3>
+                        <span class="online-status">secure session channel</span>
+                    </div>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <button id="audio-call-btn" style="background: transparent; border: none; font-size: 20px; cursor: pointer;" title="Voice Call">📞</button>
+                        <button id="video-call-btn" style="background: transparent; border: none; font-size: 20px; cursor: pointer;" title="Video Call">📹</button>
+                    </div>
                 </header>
                 
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
                     <input type="file" id="file-input" style="display: none;">
-                    <label for="file-input" class="file-attach-btn" title="Attach Media File" id="file-attachment-label" style="cursor: pointer; font-size: 24px; padding: 0 4px;">📎</label>
+                    <label for="file-input" class="file-attach-btn" title="Attach Media File" style="cursor: pointer; font-size: 24px;">📎</label>
 
-                    <button type="button" id="voice-record-btn" title="Hold to record or tap to toggle" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 0 5px;">🎤</button>
-                    <span id="voice-recording-status" class="hidden" style="color: red; font-size: 13px; font-weight: bold; animation: blink 1s infinite;">● REC 0:00</span>
+                    <button type="button" id="voice-record-btn" title="Toggle Recording" style="background: transparent; border: none; font-size: 22px; cursor: pointer;">🎤</button>
+                    <span id="voice-recording-status" class="hidden" style="color: red; font-size: 12px; font-weight: bold; animation: blink 1s infinite;">● REC</span>
 
                     <form id="message-form" style="display: flex; flex: 1; gap: 10px; align-items: center;">
                         <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
                         <button type="submit" class="btn-send">Send</button>
                     </form>
+
+                    <button type="button" id="toggle-google-panel-btn" style="background: #4285f4; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px;">Google</button>
                 </footer>
             </div>
+
+            <div id="google-assistant-sidebar" class="hidden" style="position: absolute; right: 0; top: 0; width: 320px; height: 100%; background: #ffffff; box-shadow: -4px 0 12px rgba(0,0,0,0.15); z-index: 100; display: flex; flex-direction: column;">
+                <div style="background: #4285f4; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="font-size: 16px;">Google Search Assistant</h3>
+                    <button id="close-google-panel-btn" style="background: transparent; border: none; color: white; font-size: 16px; cursor: pointer;">✕</button>
+                </div>
+                <div style="padding: 15px; display: flex; gap: 5px;">
+                    <input type="text" id="google-search-input" placeholder="Search Google..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; outline: none;">
+                    <button id="exec-google-search-btn" style="background: #4285f4; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Go</button>
+                </div>
+                <div id="google-results-container" style="flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; color: #333; background: #f8f9fa; line-height: 1.5;">
+                    <p style="color: #667781; text-align: center; margin-top: 20px;">Type a search query above to fetch helpful context or knowledge answers directly.</p>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <div id="active-call-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 200; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;">
+        <h2 id="call-screen-title" style="margin-bottom: 10px;">Calling...</h2>
+        <p id="call-screen-type" style="color: #00a884; margin-bottom: 30px; font-weight: bold;">AUDIO CHANNEL</p>
+        <div id="video-streams-container" class="hidden" style="display: flex; gap: 10px; margin-bottom: 30px;">
+            <div style="width: 160px; height: 120px; background: #333; border-radius: 6px; border: 2px solid #00a884; display: flex; align-items: center; justify-content: center; font-size: 12px;">Your Video</div>
+            <div style="width: 160px; height: 120px; background: #444; border-radius: 6px; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;">Remote Participant</div>
+        </div>
+        <button id="hangup-call-btn" style="background: #ea0038; color: white; border: none; padding: 12px 35px; border-radius: 30px; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">End Call</button>
     </div>
 
     <script type="module">
