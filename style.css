@@ -1,64 +1,255 @@
-/* Add these additions to the bottom of your current style.css file */
-
-.file-attach-btn {
-    font-size: 22px;
-    cursor: pointer;
-    padding: 0 8px;
-    display: flex;
-    align-items: center;
-    color: #54656f;
-    user-select: none;
-    transition: transform 0.2s;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.file-attach-btn:hover {
-    transform: rotate(15deg) scale(1.1);
+body {
+    background: linear-gradient(to bottom, #00a884 127px, #eae6df 127px);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Auth Pages Framework Card styling */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 20px;
+}
+
+.auth-card {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    border-top: 6px solid #005c4b;
+    text-align: center;
+}
+
+.brand-title {
     color: #005c4b;
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 600;
 }
 
-.shared-media-img {
-    max-width: 100%;
-    max-height: 250px;
-    border-radius: 6px;
+.input-group { margin-bottom: 16px; }
+
+.input-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e9edef;
+    border-radius: 4px;
+    font-size: 15px;
+    outline: none;
+    background: #fafafa;
+}
+
+.input-group input:focus {
+    border-color: #00a884;
+    background: #ffffff;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background-color: #005c4b;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 16px;
     cursor: pointer;
-    object-fit: cover;
-    display: block;
 }
 
-.shared-doc-box {
+.btn-link {
+    background: none;
+    border: none;
+    color: #00a884;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.error-text { color: #ea0038; font-size: 13px; margin-bottom: 15px; }
+.hidden { display: none !important; }
+
+/* Dashboard Core Layout Rules */
+.app-window {
+    width: 95vw;
+    height: 92vh;
+    max-width: 1600px;
+    background-color: #ffffff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
     display: flex;
+    overflow: hidden;
+    border-radius: 3px;
+}
+
+.sidebar {
+    width: 30%;
+    min-width: 340px;
+    border-right: 1px solid #e9edef;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+.sidebar-header {
+    background-color: #f0f2f5;
+    padding: 10px 16px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 10px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid #e9edef;
 }
 
-.shared-doc-box span {
-    font-size: 26px;
-}
+.user-profile h3 { font-size: 15px; color: #111b21; }
 
-.doc-details {
+.my-current-status-tag {
+    font-size: 12px;
+    color: #667781;
+    font-style: italic;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.doc-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111b21;
+/* Real-Time Status Updater Tray */
+.status-updater-tray {
+    display: flex;
+    padding: 8px 12px;
+    background-color: #fdfdfd;
+    border-bottom: 1px solid #f0f2f5;
+    gap: 6px;
+}
+
+.status-updater-tray input {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid #e9edef;
+    border-radius: 4px;
+    outline: none;
+}
+
+.status-updater-tray button {
+    background: #00a884;
+    color: white;
+    border: none;
+    padding: 0 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.btn-logout {
+    background-color: #d11a2a;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.search-box { padding: 8px 12px; background-color: #ffffff; }
+.search-box input {
+    width: 100%;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    background-color: #f0f2f5;
+    outline: none;
+}
+
+.user-list { flex: 1; overflow-y: auto; }
+
+.wa-user-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f2f5;
+    cursor: pointer;
+}
+
+.wa-user-item:hover { background-color: #f0f2f5; }
+
+.wa-avatar {
+    width: 45px;
+    height: 45px;
+    background: #00a884;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    margin-right: 15px;
+}
+
+.wa-user-info h4 { font-size: 15px; color: #111b21; font-weight: 400; }
+.wa-user-status-text {
+    font-size: 12px;
+    color: #667781;
+    margin-top: 2px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
 }
 
-.shared-doc-box small {
+/* Chat Output Streams */
+.chat-panel { width: 70%; background-color: #efeae2; display: flex; flex-direction: column; }
+
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
     color: #667781;
-    font-size: 11px;
+    background: #f8f9fa;
+    border-bottom: 6px solid #43c651;
 }
 
-.bubble-text {
-    word-break: break-word;
+.welcome-banner { font-size: 60px; margin-bottom: 10px; }
+.chat-area { display: flex; flex-direction: column; height: 100%; }
+.chat-header { background: #f0f2f5; padding: 12px 16px; border-bottom: 1px solid #e9edef; }
+.online-status { font-size: 12px; color: #667781; }
+
+.message-stream {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
 }
+
+.wa-message-row { display: flex; width: 100%; }
+.wa-bubble { max-width: 65%; padding: 8px 12px; border-radius: 7px; font-size: 14px; box-shadow: 0 1px 1px rgba(0,0,0,0.05); }
+.row-sent { justify-content: flex-end; }
+.row-sent .wa-bubble { background-color: #d9fdd3; border-top-right-radius: 0; }
+.row-received { justify-content: flex-start; }
+.row-received .wa-bubble { background-color: #ffffff; border-top-left-radius: 0; }
+
+/* File and Input Elements */
+.chat-input-bar { padding: 10px 16px; background: #f0f2f5; display: flex; align-items: center; gap: 10px; }
+.chat-input-bar form { display: flex; flex: 1; gap: 10px; }
+.chat-input-bar input { flex: 1; padding: 10px 16px; border-radius: 8px; border: none; outline: none; }
+.file-attach-btn { font-size: 20px; cursor: pointer; color: #54656f; }
+.btn-send { background-color: #005c4b; color: white; border: none; padding: 0 16px; border-radius: 8px; cursor: pointer; }
+
+.shared-media-img { max-width: 100%; max-height: 220px; border-radius: 6px; cursor: pointer; display: block; }
+.shared-doc-box { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.04); padding: 8px; border-radius: 6px; cursor: pointer; }
+.doc-name { font-size: 13px; font-weight: 600; color: #111b21; }
