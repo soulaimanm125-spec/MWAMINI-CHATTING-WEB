@@ -10,27 +10,18 @@
     <div class="app-window">
         <aside class="sidebar">
             <header class="sidebar-header">
-                <div class="user-profile">
-                    <div class="avatar-setting-wrapper">
-                        <img id="my-profile-preview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23667781'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z'/></svg>" class="current-user-avatar">
-                        <input type="file" id="avatar-upload-input" accept="image/*" class="hidden">
-                        <label for="avatar-upload-input" class="avatar-edit-overlay">📸</label>
-                    </div>
-                    <div>
+                <div class="user-profile" id="open-settings-drawer-zone" title="Click to open Profile Settings">
+                    <div class="header-avatar-frame" id="my-global-avatar-preview">M</div>
+                    <div class="profile-meta-text">
                         <h3 id="current-user-title">Loading...</h3>
-                        <p id="my-status-display" class="my-current-status-tag"></p>
+                        <p id="my-status-display" class="my-current-status-tag">Status loading...</p>
                     </div>
                 </div>
-                <button id="logout-btn" class="btn-logout">Exit Session</button>
+                <button id="logout-btn" class="btn-logout">Leave Chat</button>
             </header>
 
-            <div class="customization-bar">
-                <label for="bg-color-picker" class="tool-label">Wallpaper Background:</label>
-                <input type="color" id="bg-color-picker" value="#efeae2">
-            </div>
-
             <div class="search-box">
-                <input type="text" id="search-users" placeholder="Search or start new chat">
+                <input type="text" id="search-users" placeholder="Search isolated safe channel...">
             </div>
             <div class="user-list" id="users-container"></div>
         </aside>
@@ -39,18 +30,18 @@
             <div id="no-chat-selected" class="welcome-screen">
                 <div class="welcome-banner">🌐</div>
                 <h2>MWAMINI CHAT WEB</h2>
-                <p>Send secure files, update your custom statuses, or modify your wallpaper settings seamlessly.</p>
+                <p>Send secure files and real-time text streams across an isolated private channel network.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
-                <div class="status-updater-tray">
-                    <input type="text" id="status-input" placeholder="Update your public status bio...">
-                    <button id="update-status-btn">Save Status</button>
-                </div>
-
                 <header class="chat-header">
-                    <h3 id="chat-header-name">Active User</h3>
-                    <span class="online-status">secure isolated channel</span>
+                    <div class="chat-header-profile-row">
+                        <div class="wa-avatar" id="active-chat-header-avatar">C</div>
+                        <div class="active-user-meta-header">
+                            <h3 id="chat-header-name">Active User</h3>
+                            <span class="online-status">secure isolated channel session</span>
+                        </div>
+                    </div>
                 </header>
                 
                 <div class="message-stream" id="message-stream"></div>
@@ -66,6 +57,42 @@
                 </footer>
             </div>
         </main>
+
+        <div id="settings-drawer-overlay" class="drawer-overlay hidden">
+            <div class="drawer-body">
+                <div class="drawer-header">
+                    <button id="close-drawer-btn" class="btn-close-drawer">←</button>
+                    <h3>Profile Settings</h3>
+                </div>
+                <div class="drawer-content-scroll">
+                    <div class="drawer-section">
+                        <label class="section-title">Profile Picture</label>
+                        <div class="avatar-edit-cluster">
+                            <div class="large-avatar-preview" id="drawer-avatar-preview-circle">M</div>
+                            <input type="file" id="avatar-image-upload" class="hidden" accept="image/*">
+                            <label for="avatar-image-upload" class="btn-secondary-action">Upload New Photo</label>
+                        </div>
+                    </div>
+                    <div class="drawer-section">
+                        <label class="section-title" for="status-input">Your Status Text</label>
+                        <div class="status-updater-tray">
+                            <input type="text" id="status-input" placeholder="Update your WhatsApp bio...">
+                            <button id="update-status-btn">Save</button>
+                        </div>
+                    </div>
+                    <div class="drawer-section">
+                        <label class="section-title">Chat Wall Background Style</label>
+                        <div class="wallpaper-grid-selectors">
+                            <button class="wp-selector" data-color="#efeae2" style="background-color: #efeae2; border: 1px solid #ccc;" title="Default Sand"></button>
+                            <button class="wp-selector" data-color="#d8efdf" style="background-color: #d8efdf;" title="Mint Green"></button>
+                            <button class="wp-selector" data-color="#d3e3fc" style="background-color: #d3e3fc;" title="Soft Azure"></button>
+                            <button class="wp-selector" data-color="#fce4ec" style="background-color: #fce4ec;" title="Blush Rose"></button>
+                            <button class="wp-selector" data-color="#111b21" style="background-color: #111b21;" title="Midnight Dark"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
