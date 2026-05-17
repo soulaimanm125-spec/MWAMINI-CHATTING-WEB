@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB - Authentication</title>
+    <title>MWAMINI CHAT WEB - Secure Access Gateway</title>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+
     <div class="auth-container">
         <div class="auth-card">
             <h1 class="brand-title">MWAMINI CHAT WEB</h1>
@@ -14,22 +15,25 @@
             
             <form id="auth-form">
                 <div id="name-field-group" class="input-group">
-                    <input type="text" id="auth-name" placeholder="Full Name / Display Name" autocomplete="off">
+                    <input type="text" id="auth-name" placeholder="Full Name" autocomplete="off">
                 </div>
-                <div id="email-field-group" class="input-group hidden">
-                    <input type="email" id="auth-email" placeholder="Email Address">
+                <div id="email-field-group" class="input-group">
+                    <input type="email" id="auth-email" placeholder="Email Address" required>
                 </div>
-                <div id="pass-field-group" class="input-group hidden">
-                    <input type="password" id="auth-password" placeholder="Password">
+                <div id="password-field-group" class="input-group">
+                    <input type="password" id="auth-password" placeholder="Password" required>
                 </div>
-                <button type="submit" id="submit-btn" class="btn-primary">Join as Guest</button>
+                <button type="submit" id="submit-btn" class="btn-primary">Login</button>
             </form>
 
             <p class="toggle-text">
-                <span id="toggle-msg">Want a permanent profile?</span>
-                <button id="toggle-auth-mode" class="btn-link">Register here</button> or
-                <button id="guest-mode-btn" class="btn-link">Use Guest Mode</button>
+                <span id="toggle-msg">Don't have an account?</span>
+                <button id="toggle-auth-mode" class="btn-link">Register here</button>
             </p>
+
+            <div class="separator-line"><span>OR</span></div>
+
+            <button id="guest-mode-trigger-btn" class="btn-secondary-guest">Enter via Anonymous Guest Mode</button>
         </div>
     </div>
 
