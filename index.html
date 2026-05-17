@@ -7,39 +7,42 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-
     <div class="auth-container">
-        <div class="auth-card">
-            <h1 class="brand-title">MWAMINI CHAT WEB</h1>
-            <p id="error-message" class="error-text"></p>
+        <div id="auth-card" class="auth-card">
+            <h2 id="auth-title" class="brand-title">MWAMINI CHAT WEB</h2>
             
-            <form id="auth-form">
-                <div id="name-field-group" class="input-group">
-                    <input type="text" id="auth-name" placeholder="Full Name (For Registration)" autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <input type="email" id="auth-email" placeholder="Email Address" required>
-                </div>
-                <div class="input-group">
-                    <input type="password" id="auth-password" placeholder="Password" required>
-                </div>
-                <button type="submit" id="submit-btn" class="btn-primary">Login</button>
-            </form>
+            <p id="error-message" class="error-text hidden"></p>
 
-            <p class="toggle-text" style="margin-top: 15px; font-size: 14px; color: #667781;">
-                <span id="toggle-msg">Don't have an account?</span>
-                <button id="toggle-auth-mode" class="btn-link" style="background: none; border: none; color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline;">Register here</button>
+            <div class="input-group" id="name-group">
+                <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
+            </div>
+            
+            <div class="input-group">
+                <input type="email" id="auth-email" placeholder="Email Address">
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="auth-password" placeholder="Password">
+            </div>
+
+            <button id="auth-submit-btn" class="btn-primary">Register</button>
+
+            <p style="margin-top: 20px; font-size: 14px; color: #667781;">
+                <span id="auth-switch-text">Already have an account?</span> 
+                <button id="auth-switch-link" class="btn-link">Login here</button>
             </p>
 
-            <div class="separator-line" style="margin: 20px 0; text-align: center; color: #8696a0; font-size: 13px;">─── OR ───</div>
-
-            <button id="guest-mode-trigger-btn" class="btn-secondary-guest" style="width: 100%; padding: 11px; background: transparent; color: #00a884; border: 2px dashed #00a884; border-radius: 4px; font-weight: bold; cursor: pointer;">Enter via Guest Mode</button>
+            <div class="separator-line" style="color: #8696a0; font-size: 12px; margin: 15px 0;">─── OR ───</div>
+            <button id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
         </div>
     </div>
 
     <script type="module">
-        import { initAuthPage } from "./app.js";
-        initAuthPage();
+        import { initAuthGateway } from "./app.js";
+        // Run gateway listeners automatically when DOM binds
+        document.addEventListener("DOMContentLoaded", () => {
+            initAuthGateway();
+        });
     </script>
 </body>
-</html>
+                </html>
