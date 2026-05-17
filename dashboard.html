@@ -11,7 +11,7 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <div id="my-profile-pic-container" style="cursor: pointer; position: relative; margin-right: 5px;" title="Click to upload profile picture">
+                    <div id="my-profile-pic-container" style="cursor: pointer; position: relative; margin-right: 5px;">
                         <div class="wa-avatar" id="my-global-avatar-preview">M</div>
                         <input type="file" id="avatar-image-upload" style="display: none;" accept="image/*">
                     </div>
@@ -20,7 +20,10 @@
                         <p id="my-status-display" style="font-size: 12px; color: #667781; font-style: italic;">HI</p>
                     </div>
                 </div>
-                <button id="logout-btn" class="btn-logout">Leave Chat</button>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <button id="create-group-btn" class="btn-group-action" style="background: #008069; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">+ Group</button>
+                    <button id="logout-btn" class="btn-logout">Leave Chat</button>
+                </div>
             </header>
 
             <div class="status-updater-tray">
@@ -29,7 +32,7 @@
             </div>
 
             <div class="search-box" style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="search-users" placeholder="Search or start new chat" style="flex: 1;">
+                <input type="text" id="search-users" placeholder="Type exact username to find user...">
                 <input type="color" id="bg-color-picker" value="#efeae2" title="Change Chat Background" style="width: 35px; height: 35px; padding: 0; border: none; border-radius: 50%; cursor: pointer;">
             </div>
             
@@ -40,7 +43,7 @@
             <div id="no-chat-selected" class="welcome-screen">
                 <div class="welcome-banner">🌐</div>
                 <h2>MWAMINI CHAT WEB</h2>
-                <p>Send secure files and real-time text streams across an end-to-end controlled dashboard.</p>
+                <p>Send secure files, voice recordings, and real-time text streams across an end-to-end controlled dashboard.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
@@ -52,10 +55,13 @@
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
-                    <input type="file" id="file-input" style="display: none;" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
-                    <label for="file-input" class="file-attach-btn" title="Attach Media File" style="cursor: pointer; font-size: 24px;">📎</label>
+                    <input type="file" id="file-input" style="display: none;">
+                    <label for="file-input" class="file-attach-btn" title="Attach Media File" id="file-attachment-label" style="cursor: pointer; font-size: 24px; padding: 0 4px;">📎</label>
 
-                    <form id="message-form" style="display: flex; flex: 1; gap: 10px;">
+                    <button type="button" id="voice-record-btn" title="Hold to record or tap to toggle" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 0 5px;">🎤</button>
+                    <span id="voice-recording-status" class="hidden" style="color: red; font-size: 13px; font-weight: bold; animation: blink 1s infinite;">● REC 0:00</span>
+
+                    <form id="message-form" style="display: flex; flex: 1; gap: 10px; align-items: center;">
                         <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
                         <button type="submit" class="btn-send">Send</button>
                     </form>
