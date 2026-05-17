@@ -1,183 +1,41 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger - Log In</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-// 1. Core Firebase Web Credentials
-const firebaseConfig = {
-  apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
-  authDomain: "mwamini-chatting-web.firebaseapp.com",
-  projectId: "mwamini-chatting-web",
-  storageBucket: "mwamini-chatting-web.firebasestorage.app",
-  messagingSenderId: "640958885512",
-  appId: "1:640958885512:web:2f9a636acc85534009b93d",
-  measurementId: "G-SW9FBXX78G"
-};
-
-// 2. Initialize Instances
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let currentUser = null;
-let activeChatId = null;
-let unsubscribeMessages = null;
-
-// ==========================================
-// 3. SECURE AUTH ENGINE (index.html)
-// ==========================================
-export function initAuthPage() {
-    let isRegisterMode = false;
-
-    setPersistence(auth, browserLocalPersistence).then(() => {
-        onAuthStateChanged(auth, (user) => {
-            if (user) window.location.href = "dashboard.html";
-        });
-    });
-
-    const authForm = document.getElementById("auth-form");
-    const toggleBtn = document.getElementById("toggle-auth-mode");
-    const nameGroup = document.getElementById("name-field-group");
-    const submitBtn = document.getElementById("submit-btn");
-    const toggleMsg = document.getElementById("toggle-msg");
-    const errorMsg = document.getElementById("error-message");
-
-    if (toggleBtn) {
-        toggleBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-            isRegisterMode = !isRegisterMode;
-            nameGroup.classList.toggle("hidden", !isRegisterMode);
-            submitBtn.innerText = isRegisterMode ? "Sign Up" : "Log In";
-            toggleMsg.innerText = isRegisterMode ? "Already have an account?" : "Don't have an account?";
-            toggleBtn.innerText = isRegisterMode ? "Log in here" : "Sign up here";
-        });
-    }
-
-    if (authForm) {
-        authForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            errorMsg.innerText = "";
-            const email = document.getElementById("auth-email").value;
-            const password = document.getElementById("auth-password").value;
-            const name = document.getElementById("auth-name").value;
-
-            try {
-                if (isRegisterMode) {
-                    const credentials = await createUserWithEmailAndPassword(auth, email, password);
-                    await setDoc(doc(db, "users", credentials.user.uid), {
-                        uid: credentials.user.uid,
-                        name: name || email.split("@")[0],
-                        email: email
-                    });
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
-            } catch (error) {
-                errorMsg.innerText = error.message;
-            }
-        });
-    }
-}
-
-// ==========================================
-// 4. FACEBOOK CHAT LOGIC (dashboard.html)
-// ==========================================
-export function initDashboardPage() {
-    onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-            window.location.href = "index.html";
-        } else {
-            currentUser = user;
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                document.getElementById("current-user-title").innerText = userDoc.data().name;
-            }
-            loadFacebookSidebar();
-        }
-    });
-
-    document.getElementById("logout-btn")?.addEventListener("click", () => {
-        signOut(auth).then(() => { window.location.href = "index.html"; });
-    });
-
-    document.getElementById("message-form")?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const input = document.getElementById("message-input");
-        const messageText = input.value.trim();
-        if (!messageText || !activeChatId) return;
-
-        input.value = "";
-        await addDoc(collection(db, "chats", activeChatId, "messages"), {
-            text: messageText,
-            senderId: currentUser.uid,
-            createdAt: serverTimestamp()
-        });
-    });
-}
-
-function loadFacebookSidebar() {
-    const q = query(collection(db, "users"));
-    onSnapshot(q, (snapshot) => {
-        const container = document.getElementById("users-container");
-        if (!container) return;
-        container.innerHTML = "";
-        snapshot.forEach((userDoc) => {
-            const userData = userDoc.data();
-            if (userData.uid !== currentUser.uid) {
-                const item = document.createElement("div");
-                item.className = "fb-user-item";
-                item.innerHTML = `
-                    <div class="fb-avatar">${userData.name.charAt(0).toUpperCase()}</div>
-                    <div class="fb-user-info">
-                        <h4>${userData.name}</h4>
-                        <p>Active now</p>
-                    </div>
-                `;
-                item.addEventListener("click", () => openFacebookChat(userData));
-                container.appendChild(item);
-            }
-        });
-    });
-}
-
-async function openFacebookChat(targetUser) {
-    activeChatId = [currentUser.uid, targetUser.uid].sort().join("_");
-    document.getElementById("no-chat-selected").classList.add("hidden");
-    document.getElementById("active-chat-area").classList.remove("hidden");
-    
-    // Header updates to reflect the active conversation partner
-    document.getElementById("chat-header-name").innerText = targetUser.name;
-
-    const chatRef = doc(db, "chats", activeChatId);
-    const chatSnap = await getDoc(chatRef);
-    if (!chatSnap.exists()) {
-        await setDoc(chatRef, {
-            chatId: activeChatId,
-            participants: [currentUser.uid, targetUser.uid],
-            updatedAt: serverTimestamp()
-        });
-    }
-
-    listenToFacebookMessages();
-}
-
-function listenToFacebookMessages() {
-    if (unsubscribeMessages) unsubscribeMessages();
-
-    const mQuery = query(collection(db, "chats", activeChatId, "messages"), orderBy("createdAt", "asc"));
-    unsubscribeMessages = onSnapshot(mQuery, (snapshot) => {
-        const stream = document.getElementById("message-stream");
-        if (!stream) return;
-        stream.innerHTML = "";
-        snapshot.forEach((msgDoc) => {
-            const msg = msgDoc.data();
-            const bubbleContainer = document.createElement("div");
-            bubbleContainer.className = `fb-message-row ${msg.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="brand-title">mwamini</h1>
+            <p id="error-message" class="error-text"></p>
             
-            bubbleContainer.innerHTML = `
-                <div class="fb-bubble">${msg.text}</div>
-            `;
-            stream.appendChild(bubbleContainer);
-        });
-        stream.scrollTop = stream.scrollHeight;
-    });
-}
+            <form id="auth-form">
+                <div id="name-field-group" class="input-group hidden">
+                    <input type="text" id="auth-name" placeholder="First and last name">
+                </div>
+                <div class="input-group">
+                    <input type="email" id="auth-email" placeholder="Email address" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="auth-password" placeholder="Password" required>
+                </div>
+                <button type="submit" id="submit-btn" class="btn-primary">Log In</button>
+            </form>
+
+            <p class="toggle-text">
+                <span id="toggle-msg">Don't have an account?</span>
+                <button id="toggle-auth-mode" class="btn-link">Sign up here</button>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initAuthPage } from "./app.js";
+        initAuthPage();
+    </script>
+</body>
+</html>
