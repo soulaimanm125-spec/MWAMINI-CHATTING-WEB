@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 // 1. Core Firebase Web Credentials
@@ -25,17 +25,14 @@ let activeChatId = null;
 let unsubscribeMessages = null;
 
 // ========================================================
-// 3. AUTHENTICATION ENGINE (Allows Open Registration)
+// 3. AUTHENTICATION ENGINE (Open Registration System)
 // ========================================================
 export function initAuthPage() {
     let isRegisterMode = false;
 
-    // Persist login status across tab refreshes cleanly
     setPersistence(auth, browserLocalPersistence).then(() => {
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                window.location.href = "dashboard.html";
-            }
+            if (user) window.location.href = "dashboard.html";
         });
     });
 
@@ -67,21 +64,17 @@ export function initAuthPage() {
 
             try {
                 if (isRegisterMode) {
-                    // Create account directly in Firebase Authentication
                     const credentials = await createUserWithEmailAndPassword(auth, email, password);
-                    
-                    // Create user profile document in Firestore
                     await setDoc(doc(db, "users", credentials.user.uid), {
                         uid: credentials.user.uid,
                         name: name || email.split("@")[0],
-                        email: email
+                        email: email,
+                        status: "Hey there! I am using Mwamini Chat." // Default status payload
                     });
                 } else {
-                    // User sign in path
                     await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (error) {
-                // Clear and structured error messages shown to user
                 errorMsg.innerText = error.message;
             }
         });
@@ -89,7 +82,7 @@ export function initAuthPage() {
 }
 
 // ========================================================
-// 4. WHATSAPP STYLE MESSENGER LOGIC (With File Uploads)
+// 4. MESSENGER CORE ENGINE & STATUS CONTROLLER
 // ========================================================
 export function initDashboardPage() {
     onAuthStateChanged(auth, async (user) => {
@@ -97,11 +90,34 @@ export function initDashboardPage() {
             window.location.href = "index.html";
         } else {
             currentUser = user;
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-                document.getElementById("current-user-title").innerText = userDoc.data().name;
-            }
+            
+            // Listen real-time to current user's profile data (to keep own status updated instantly)
+            onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById("current-user-title").innerText = data.name;
+                    document.getElementById("my-status-display").innerText = data.status || "No custom status set";
+                }
+            });
+
             loadWhatsAppSidebar();
+        }
+    });
+
+    // Custom Status Input Box Logic
+    document.getElementById("update-status-btn")?.addEventListener("click", async () => {
+        const inputField = document.getElementById("status-input");
+        const newStatus = inputField.value.trim();
+        if (!newStatus) return;
+
+        try {
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                status: newStatus
+            });
+            inputField.value = "";
+            alert("Your WhatsApp status has been updated successfully!");
+        } catch (error) {
+            console.error("Error writing status object: ", error);
         }
     });
 
@@ -109,7 +125,6 @@ export function initDashboardPage() {
         signOut(auth).then(() => { window.location.href = "index.html"; });
     });
 
-    // Text Form Submission Handle
     document.getElementById("message-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("message-input");
@@ -125,7 +140,6 @@ export function initDashboardPage() {
         });
     });
 
-    // File Sharing Input Trigger Handle
     document.getElementById("file-input")?.addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file || !activeChatId) return;
@@ -135,7 +149,6 @@ export function initDashboardPage() {
         uploadStatusBar.innerText = "🔄 Uploading file...";
 
         try {
-            // Uploads file to Firebase Storage bucket using chat ID grouping
             const storagePathRef = ref(storage, `shared_files/${activeChatId}/${Date.now()}_${file.name}`);
             const snapshot = await uploadBytes(storagePathRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
@@ -170,7 +183,7 @@ function loadWhatsAppSidebar() {
                     <div class="wa-avatar">${userData.name.charAt(0).toUpperCase()}</div>
                     <div class="wa-user-info">
                         <h4>${userData.name}</h4>
-                        <p>${userData.email}</p>
+                        <p class="wa-user-status-text">💬 ${userData.status || 'Available'}</p>
                     </div>
                 `;
                 item.addEventListener("click", () => openWhatsAppChat(userData));
