@@ -11,10 +11,17 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <span id="current-user-title">Loading Profile...</span>
+                    <h3 id="current-user-title">Loading...</h3>
+                    <p id="my-status-display" class="my-current-status-tag">Status loading...</p>
                 </div>
                 <button id="logout-btn" class="btn-logout">Logout</button>
             </header>
+
+            <div class="status-updater-tray">
+                <input type="text" id="status-input" placeholder="Update your daily bio/status...">
+                <button id="update-status-btn">Save</button>
+            </div>
+
             <div class="search-box">
                 <input type="text" id="search-users" placeholder="Search or start new chat">
             </div>
