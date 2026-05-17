@@ -183,9 +183,15 @@ body {
 
 .wa-user-item:hover { background-color: #f0f2f5; }
 
+/* Real-time Status Presences Elements styling */
+.wa-avatar-container {
+    position: relative;
+    margin-right: 15px;
+}
+
 .wa-avatar {
-    width: 45px;
-    height: 45px;
+    width: 48px;
+    height: 48px;
     background: #00a884;
     color: white;
     border-radius: 50%;
@@ -193,21 +199,38 @@ body {
     justify-content: center;
     align-items: center;
     font-weight: bold;
-    margin-right: 15px;
+    font-size: 18px;
 }
 
-.wa-user-info h4 { font-size: 15px; color: #111b21; font-weight: 400; }
+.presence-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.badge-online { background-color: #1fa344 !important; color: #1fa344 !important; }
+.badge-offline { background-color: #8696a0 !important; color: #8696a0 !important; }
+
+.wa-user-info { flex: 1; display: flex; flex-direction: column; }
+.wa-user-header-row { display: flex; justify-content: space-between; align-items: center; }
+.wa-user-header-row h4 { font-size: 16px; color: #111b21; font-weight: 400; }
+.presence-status-text { font-size: 11px; font-weight: 600; }
+
 .wa-user-status-text {
-    font-size: 12px;
+    font-size: 13px;
     color: #667781;
-    margin-top: 2px;
+    margin-top: 3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 200px;
+    max-width: 240px;
 }
 
-/* Chat Output Streams */
+/* Chat Engine Framework layout panels */
 .chat-panel { width: 70%; background-color: #efeae2; display: flex; flex-direction: column; }
 
 .welcome-screen {
@@ -218,7 +241,7 @@ body {
     height: 100%;
     color: #667781;
     background: #f8f9fa;
-    border-bottom: 6px solid #43c651;
+    border-bottom: 6px solid #00a884;
 }
 
 .welcome-banner { font-size: 60px; margin-bottom: 10px; }
@@ -243,13 +266,20 @@ body {
 .row-received { justify-content: flex-start; }
 .row-received .wa-bubble { background-color: #ffffff; border-top-left-radius: 0; }
 
-/* File and Input Elements */
+/* Interactive Input Elements */
 .chat-input-bar { padding: 10px 16px; background: #f0f2f5; display: flex; align-items: center; gap: 10px; }
 .chat-input-bar form { display: flex; flex: 1; gap: 10px; }
-.chat-input-bar input { flex: 1; padding: 10px 16px; border-radius: 8px; border: none; outline: none; }
-.file-attach-btn { font-size: 20px; cursor: pointer; color: #54656f; }
-.btn-send { background-color: #005c4b; color: white; border: none; padding: 0 16px; border-radius: 8px; cursor: pointer; }
+.chat-input-bar input { flex: 1; padding: 10px 16px; border-radius: 8px; border: none; outline: none; font-size: 15px; }
+.file-attach-btn { font-size: 24px; cursor: pointer; color: #54656f; padding: 0 4px; display: flex; align-items: center; }
+.btn-send { background-color: #005c4b; color: white; border: none; padding: 0 18px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 
-.shared-media-img { max-width: 100%; max-height: 220px; border-radius: 6px; cursor: pointer; display: block; }
-.shared-doc-box { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.04); padding: 8px; border-radius: 6px; cursor: pointer; }
-.doc-name { font-size: 13px; font-weight: 600; color: #111b21; }
+/* Shared Multimedia Rendering Modules */
+.shared-media-img { max-width: 100%; max-height: 260px; border-radius: 6px; cursor: pointer; display: block; }
+.shared-media-video { max-width: 100%; max-height: 260px; border-radius: 6px; display: block; background: black; }
+.shared-media-audio { max-width: 100%; display: block; outline: none; margin: 4px 0; }
+
+.shared-doc-box { display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
+.shared-doc-box span { font-size: 24px; }
+.doc-name { font-size: 13px; font-weight: 600; color: #111b21; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 200px; }
+.shared-doc-box small { color: #667781; font-size: 11px; }
+.bubble-text { word-break: break-word; line-height: 1.4; }
