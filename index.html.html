@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mwamini Chat - Sign In</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="brand-title">MWAMINI CHAT</h1>
+            <p id="error-message" class="error-text"></p>
+            
+            <form id="auth-form">
+                <div id="name-field-group" class="input-group hidden">
+                    <input type="text" id="auth-name" placeholder="Full Name">
+                </div>
+                <div class="input-group">
+                    <input type="email" id="auth-email" placeholder="Email Address" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="auth-password" placeholder="Password" required>
+                </div>
+                <button type="submit" id="submit-btn" class="btn-primary">Login</button>
+            </form>
+
+            <p class="toggle-text">
+                <span id="toggle-msg">Don't have an account?</span>
+                <button id="toggle-auth-mode" class="btn-link">Register here</button>
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initAuthPage } from "./app.js";
+        initAuthPage();
+    </script>
+</body>
+</html>

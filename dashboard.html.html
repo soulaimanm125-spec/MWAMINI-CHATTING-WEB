@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mwamini Chat - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-window">
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="user-profile">
+                    <span id="current-user-name">Verifying Secure Session...</span>
+                </div>
+                <button id="logout-btn" class="btn-logout">Logout</button>
+            </header>
+            <div class="search-box">
+                <input type="text" id="search-users" placeholder="Search available users...">
+            </div>
+            <div class="user-list" id="users-container"></div>
+        </aside>
+
+        <main class="chat-panel" id="chat-panel">
+            <div id="no-chat-selected" class="welcome-screen">
+                <h1>MWAMINI CHATTING WEB</h1>
+                <p>Select a user from the sidebar to initialize real-time conversations.</p>
+            </div>
+
+            <div id="active-chat-area" class="chat-area hidden">
+                <header class="chat-header">
+                    <h2 id="active-user-title">Chat Room</h2>
+                </header>
+                <div class="message-stream" id="message-stream"></div>
+                <footer class="chat-input-bar">
+                    <form id="message-form">
+                        <input type="text" id="message-input" placeholder="Type your secure message..." autocomplete="off">
+                        <button type="submit" class="btn-send">Send</button>
+                    </form>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initDashboardPage } from "./app.js";
+        initDashboardPage();
+    </script>
+</body>
+</html>
