@@ -4,12 +4,14 @@ import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, addDo
 
 // 1. Firebase Configuration Profile
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+const firebaseConfig = {
+  apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
+  authDomain: "mwamini-chatting-web.firebaseapp.com",
+  projectId: "mwamini-chatting-web",
+  storageBucket: "mwamini-chatting-web.firebasestorage.app",
+  messagingSenderId: "640958885512",
+  appId: "1:640958885512:web:2f9a636acc85534009b93d",
+  measurementId: "G-SW9FBXX78G"
 };
 
 // 2. Initialize Core Services
