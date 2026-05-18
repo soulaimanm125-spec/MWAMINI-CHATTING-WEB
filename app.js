@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, onSnapshot, doc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -24,11 +24,11 @@ let activeChatId = null;
 let unsubscribeMessages = null;
 let activeSessionStartTime = null; 
 
-// Voice Memo Recording System Registers
 let audioMediaRecorder = null;
 let recordedAudioChunks = [];
 
-export function initDashboardPage() {
+// Base Initializer
+function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
 
@@ -40,63 +40,58 @@ export function initDashboardPage() {
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
-    // Profile initialization stream listener hook
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
-            document.getElementById("current-user-title").innerText = data.name;
-            document.getElementById("my-status-display").innerText = data.status || "Available";
+            if(document.getElementById("current-user-title")) document.getElementById("current-user-title").innerText = data.name;
+            if(document.getElementById("my-status-display")) document.getElementById("my-status-display").innerText = data.status || "Available";
         }
     });
 
-    // --- UPGRADED: ADVANCED IMAGE / VIDEO MWAMINI STATUS POST ENGINE ---
-    document.getElementById("update-status-btn").addEventListener("click", async () => {
-        const input = document.getElementById("status-input");
-        const mediaInput = document.getElementById("status-media-file");
-        const textPayload = input.value.trim();
-        const attachedFile = mediaInput.files[0];
+    // --- MWAMINI STATUS POST ENGINE WITH SAFETIES ---
+    const updateStatusBtn = document.getElementById("update-status-btn");
+    if (updateStatusBtn) {
+        updateStatusBtn.addEventListener("click", async () => {
+            const input = document.getElementById("status-input");
+            const mediaInput = document.getElementById("status-media-file");
+            const textPayload = input ? input.value.trim() : "";
+            const attachedFile = mediaInput ? mediaInput.files[0] : null;
 
-        if (!textPayload && !attachedFile) return;
+            if (!textPayload && !attachedFile) return;
+            let downloadedMediaUrl = "";
+            let computedMediaType = "text";
 
-        let downloadedMediaUrl = "";
-        let computedMediaType = "text";
+            try {
+                if (attachedFile) {
+                    computedMediaType = attachedFile.type.startsWith("video/") ? "video" : "image";
+                    const storageLocationRef = ref(storage, `mwamini_statuses/${currentUser.uid}/${Date.now()}_${attachedFile.name}`);
+                    const snapshot = await uploadBytes(storageLocationRef, attachedFile);
+                    downloadedMediaUrl = await getDownloadURL(snapshot.ref);
+                }
 
-        try {
-            if (attachedFile) {
-                computedMediaType = attachedFile.type.startsWith("video/") ? "video" : "image";
-                const storageLocationRef = ref(storage, `mwamini_statuses/${currentUser.uid}/${Date.now()}_${attachedFile.name}`);
-                const snapshot = await uploadBytes(storageLocationRef, attachedFile);
-                downloadedMediaUrl = await getDownloadURL(snapshot.ref);
+                await addDoc(collection(db, "statuses"), {
+                    uid: currentUser.uid,
+                    userName: currentUser.name,
+                    accountMode: "standard",
+                    textPayload: textPayload || `Posted an update status ${computedMediaType}`,
+                    mediaUrl: downloadedMediaUrl,
+                    statusType: computedMediaType,
+                    createdAt: serverTimestamp()
+                });
+
+                await updateDoc(doc(db, "users", currentUser.uid), { status: textPayload || "Active with a story update." });
+                if(input) input.value = "";
+                if(mediaInput) mediaInput.value = "";
+                alert("Your MWAMINI status story line has been successfully dispatched.");
+            } catch (err) {
+                alert("Status story delivery dropped: " + err.message);
             }
+        });
+    }
 
-            await addDoc(collection(db, "statuses"), {
-                uid: currentUser.uid,
-                userName: currentUser.name,
-                accountMode: "standard",
-                textPayload: textPayload || `Posted a new status ${computedMediaType}`,
-                mediaUrl: downloadedMediaUrl,
-                statusType: computedMediaType,
-                createdAt: serverTimestamp()
-            });
-
-            await updateDoc(doc(db, "users", currentUser.uid), { 
-                status: textPayload || `Active with a story update.` 
-            });
-
-            // Flush interface state values completely clean post transmission completion
-            input.value = "";
-            mediaInput.value = "";
-            alert("Your MWAMINI status story line has been successfully dispatched.");
-        } catch (err) {
-            alert("Status story delivery dropped: " + err.message);
-        }
-    });
-
-    // Read live MWAMINI Status feeds continuously across a rolling 24-hour retention timeline window
+    // Live continuous status updater query
     const retentionThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const statusesQuery = query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20));
-
-    onSnapshot(statusesQuery, (snapshot) => {
+    onSnapshot(query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20)), (snapshot) => {
         const feedContainerTray = document.getElementById("active-statuses-view");
         if (!feedContainerTray) return;
         feedContainerTray.innerHTML = "";
@@ -104,21 +99,18 @@ export function initDashboardPage() {
         snapshot.forEach((statusDoc) => {
             const data = statusDoc.data();
             if (!data.createdAt) return;
-
             if (data.createdAt.toDate() > retentionThreshold) {
                 const layoutBubble = document.createElement("div");
-                layoutBubble.style = "background: #e1f5fe; border: 1px solid #b3e5fc; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #01579b; cursor: pointer; display: flex; flex-direction: column; gap: 4px;";
+                layoutBubble.style = "background: #e1f5fe; border: 1px solid #b3e5fc; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #01579b; cursor: pointer; display: flex; flex-direction: column; gap: 4px; white-space:nowrap;";
                 
                 let embeddedMediaOutputElement = "";
                 if (data.statusType === "image") {
-                    embeddedMediaOutputElement = `<img src="${data.mediaUrl}" style="width:70px; height:70px; object-fit:cover; border-radius:4px; margin-top:2px;">`;
+                    embeddedMediaOutputElement = `<img src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">`;
                 } else if (data.statusType === "video") {
-                    embeddedMediaOutputElement = `<video src="${data.mediaUrl}" style="width:70px; height:70px; object-fit:cover; border-radius:4px; margin-top:2px;" muted></video>`;
+                    embeddedMediaOutputElement = `<video src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;" muted></video>`;
                 }
 
                 layoutBubble.innerHTML = `<strong>${data.userName}</strong><span>${data.textPayload}</span>${embeddedMediaOutputElement}`;
-                
-                // Clicking opens full resolution media directly into clean browser workspace contexts
                 if (data.mediaUrl) {
                     layoutBubble.addEventListener("click", () => window.open(data.mediaUrl, "_blank"));
                 }
@@ -127,98 +119,97 @@ export function initDashboardPage() {
         });
     });
 
-    // --- UPGRADED: NATIVE VOICE CHAT MEMO ENGINE ---
+    // --- NATIVE VOICE RECORDING ATTACHMENTS ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
-    recordVoiceBtn.addEventListener("click", async () => {
-        if (!activeChatId) return;
+    if (recordVoiceBtn) {
+        recordVoiceBtn.addEventListener("click", async () => {
+            if (!activeChatId) return;
+            if (!audioMediaRecorder) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioMediaRecorder = new MediaRecorder(stream);
+                    audioMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedAudioChunks.push(e.data); };
+                    audioMediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(recordedAudioChunks, { type: "audio/ogg; codecs=opus" });
+                        recordedAudioChunks = [];
+                        if(recordStatusText) recordStatusText.classList.add("hidden");
+                        recordVoiceBtn.style.color = "initial";
 
-        if (!audioMediaRecorder) {
-            // Requesting core browser input stream tracking access parameters
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioMediaRecorder = new MediaRecorder(stream);
+                        const voiceStorageRef = ref(storage, `voice_memos/${activeChatId}/${Date.now()}_clip.ogg`);
+                        const snap = await uploadBytes(voiceStorageRef, audioBlob);
+                        const downloadUrl = await getDownloadURL(snap.ref);
 
-                audioMediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) recordedAudioChunks.push(event.data);
-                };
-
-                audioMediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(recordedAudioChunks, { type: "audio/ogg; codecs=opus" });
-                    recordedAudioChunks = [];
-
-                    recordStatusText.classList.add("hidden");
-                    recordVoiceBtn.style.color = "initial";
-
-                    // Transmit generated voice audio file straight out to Cloud Storage paths
-                    const voiceStorageRef = ref(storage, `voice_memos/${activeChatId}/${Date.now()}_clip.ogg`);
-                    const snap = await uploadBytes(voiceStorageRef, audioBlob);
-                    const downloadUrl = await getDownloadURL(snap.ref);
-
-                    await addDoc(collection(db, "chats", activeChatId, "messages"), {
-                        text: "Voice Note Spatial Transmission",
-                        fileUrl: downloadUrl,
-                        type: "audio",
-                        senderId: currentUser.uid,
-                        senderName: currentUser.name,
-                        createdAt: serverTimestamp()
-                    });
-                };
-            } catch (err) {
-                alert("Audio capturing permission rejected: " + err.message);
-                return;
+                        await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                            text: "Voice Note Spatial Transmission",
+                            fileUrl: downloadUrl,
+                            type: "audio",
+                            senderId: currentUser.uid,
+                            senderName: currentUser.name,
+                            createdAt: serverTimestamp()
+                        });
+                    };
+                } catch (err) {
+                    alert("Audio capturing permission rejected: " + err.message);
+                    return;
+                }
             }
-        }
 
-        // Toggle state recording switches sequentially on standard button inputs
-        if (audioMediaRecorder.state === "inactive") {
-            audioMediaRecorder.start();
-            recordStatusText.classList.remove("hidden");
-            recordVoiceBtn.style.color = "#ea0038";
-        } else {
-            audioMediaRecorder.stop();
-        }
-    });
+            if (audioMediaRecorder.state === "inactive") {
+                audioMediaRecorder.start();
+                if(recordStatusText) recordStatusText.classList.remove("hidden");
+                recordVoiceBtn.style.color = "#ea0038";
+            } else {
+                audioMediaRecorder.stop();
+            }
+        });
+    }
 
-    // --- UPGRADED: CALLING COMPONENT INTEGRATION HOOK HANDLERS ---
-    document.getElementById("trigger-voice-call").addEventListener("click", () => {
-        if (!activeChatId) return;
-        alert(`Initiating secure encrypted Voice Call stream to user session endpoints...`);
-    });
+    // --- CALL SUITE BUTTON TRIGGERS ---
+    if(document.getElementById("trigger-voice-call")) {
+        document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating secure encrypted Voice Call stream..."));
+    }
+    if(document.getElementById("trigger-video-call")) {
+        document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting high-definition peer Video Link configuration..."));
+    }
 
-    document.getElementById("trigger-video-call").addEventListener("click", () => {
-        if (!activeChatId) return;
-        alert(`Requesting high-definition peer Video Link configuration matrices across active networks...`);
-    });
-
-    // --- SEARCH AND GENERAL CHAT LOGIC CONTINUITY RUNNERS ---
+    // --- PRIVACY SEARCH QUERY SUITE ---
     const searchField = document.getElementById("search-users");
-    searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
+    if (searchField) {
+        searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
+    }
     executeTargetSearchQuery("");
 
-    document.getElementById("message-form").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const input = document.getElementById("message-input");
-        if (!input.value.trim() || !activeChatId) return;
+    // --- MESSAGE SEND FORM ACTIONS ---
+    const messageForm = document.getElementById("message-form");
+    if (messageForm) {
+        messageForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("message-input");
+            if (!input || !input.value.trim() || !activeChatId) return;
 
-        const basePayloadText = input.value.trim();
-        input.value = "";
+            const basePayloadText = input.value.trim();
+            input.value = "";
 
-        await addDoc(collection(db, "chats", activeChatId, "messages"), {
-            text: basePayloadText,
-            type: "text",
-            senderId: currentUser.uid,
-            senderName: currentUser.name,
-            createdAt: serverTimestamp()
+            await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                text: basePayloadText,
+                type: "text",
+                senderId: currentUser.uid,
+                senderName: currentUser.name,
+                createdAt: serverTimestamp()
+            });
         });
-    });
+    }
 
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-        await updateDoc(doc(db, "users", currentUser.uid), { isOnline: false }).catch(() => {});
-        localStorage.clear();
-        signOut(auth).finally(() => { window.location.href = "index.html"; });
-    });
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+            await updateDoc(doc(db, "users", currentUser.uid), { isOnline: false }).catch(() => {});
+            localStorage.clear();
+            signOut(auth).finally(() => { window.location.href = "index.html"; });
+        });
+    }
 }
 
 async function executeTargetSearchQuery(keyword) {
@@ -227,13 +218,13 @@ async function executeTargetSearchQuery(keyword) {
     listCanvas.innerHTML = "";
 
     if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to start chatting.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to clear privacy filter.</p>`;
         return;
     }
 
     const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No matching name found.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified identity matching resolved.</p>`;
         return;
     }
 
@@ -248,13 +239,13 @@ async function executeTargetSearchQuery(keyword) {
 function buildSidebarChannelElement(userData) {
     const canvas = document.getElementById("users-container");
     const row = document.createElement("div");
-    row.className = "wa-user-item";
+    row.style = "display:flex; align-items:center; gap:10px; padding:10px; cursor:pointer; border-bottom:1px solid #f0f2f5;";
 
     row.innerHTML = `
-        <div class="wa-avatar-container"><div class="wa-avatar" style="background:#00a884">${userData.name.charAt(0).toUpperCase()}</div></div>
-        <div class="wa-user-info">
-            <div class="wa-user-header-row"><h4>${userData.name}</h4></div>
-            <p class="wa-user-status-text">${userData.status || 'Available'}</p>
+        <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${userData.name.charAt(0).toUpperCase()}</div>
+        <div>
+            <h4 style="margin:0; font-size:14px; color:#111b21;">${userData.name}</h4>
+            <p style="margin:0; font-size:12px; color:#667781;">${userData.status || 'Available'}</p>
         </div>
     `;
 
@@ -262,9 +253,9 @@ function buildSidebarChannelElement(userData) {
         activeChatId = [currentUser.uid, userData.uid].sort().join("_");
         activeSessionStartTime = new Date();
 
-        document.getElementById("no-chat-selected").classList.add("hidden");
-        document.getElementById("active-chat-area").classList.remove("hidden");
-        document.getElementById("chat-header-name").innerText = userData.name;
+        if(document.getElementById("no-chat-selected")) document.getElementById("no-chat-selected").classList.add("hidden");
+        if(document.getElementById("active-chat-area")) document.getElementById("active-chat-area").classList.remove("hidden");
+        if(document.getElementById("chat-header-name")) document.getElementById("chat-header-name").innerText = userData.name;
 
         setDoc(doc(db, "chats", activeChatId), {
             chatId: activeChatId,
@@ -275,8 +266,10 @@ function buildSidebarChannelElement(userData) {
         bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
     });
 
-    canvas.innerHTML = "";
-    canvas.appendChild(row);
+    if(canvas) {
+        canvas.innerHTML = "";
+        canvas.appendChild(row);
+    }
 }
 
 function bindLiveIsolatedMessageStreams(collectionReference) {
@@ -292,19 +285,27 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
 
             if (data.createdAt.toDate() >= activeSessionStartTime) {
                 const bubbleRow = document.createElement("div");
-                bubbleRow.className = `wa-message-row ${data.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+                const isMe = data.senderId === currentUser.uid;
+                bubbleRow.style = `display:flex; justify-content:${isMe ? 'flex-end' : 'flex-start'}; margin-bottom:10px;`;
                 
                 let visualPayloadOutputBlock = "";
                 if (data.type === "audio") {
-                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:220px; outline:none;"></audio>`;
+                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px;"></audio>`;
                 } else {
-                    visualPayloadOutputBlock = `<p class="bubble-text" style="margin:0;">${data.text}</p>`;
+                    visualPayloadOutputBlock = `<p style="margin:0; font-size:14px; white-space:pre-wrap;">${data.text}</p>`;
                 }
 
-                bubbleRow.innerHTML = `<div class="wa-bubble">${visualPayloadOutputBlock}</div>`;
+                bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); max-width:60%;">${visualPayloadOutputBlock}</div>`;
                 chatBoxWindow.appendChild(bubbleRow);
             }
         });
         chatBoxWindow.scrollTop = chatBoxWindow.scrollHeight;
     });
+}
+
+// Auto-run structural ignition sequence safely on script load check bounds
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDashboardPage);
+} else {
+    initDashboardPage();
 }
