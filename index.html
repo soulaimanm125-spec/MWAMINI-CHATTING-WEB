@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="auth-container">
-        <div id="auth-card" class="auth-card">
+        <div class="auth-card" id="auth-card">
             <h2 id="auth-title" class="brand-title">MWAMINI CHAT WEB</h2>
             
             <p id="error-message" class="error-text hidden"></p>
@@ -16,30 +16,27 @@
             <div class="input-group" id="name-group">
                 <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
             </div>
-            
             <div class="input-group">
                 <input type="email" id="auth-email" placeholder="Email Address">
             </div>
-            
             <div class="input-group">
                 <input type="password" id="auth-password" placeholder="Password">
             </div>
 
-            <button id="auth-submit-btn" class="btn-primary">Register</button>
+            <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
 
-            <p style="margin-top: 20px; font-size: 14px; color: #667781;">
+            <p style="margin-top: 15px; font-size: 14px; color: #667781;">
                 <span id="auth-switch-text">Already have an account?</span> 
-                <button id="auth-switch-link" class="btn-link">Login here</button>
+                <button type="button" id="auth-switch-link" class="btn-link">Login here</button>
             </p>
-
-            <div class="separator-line" style="color: #8696a0; font-size: 12px; margin: 15px 0;">─── OR ───</div>
-            <button id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
+            
+            <div class="separator-line" style="margin: 15px 0; color: #8696a0; font-size: 12px;">─── OR ───</div>
+            <button type="button" id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
         </div>
     </div>
 
     <script type="module">
-        import { initAuthGateway } from "./app.js";
-        // Run gateway listeners automatically when DOM binds
+        import { initAuthGateway } from "./auth.js";
         document.addEventListener("DOMContentLoaded", () => {
             initAuthGateway();
         });
