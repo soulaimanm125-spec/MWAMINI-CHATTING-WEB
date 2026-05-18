@@ -32,6 +32,11 @@
                 <div class="input-group">
                     <input type="password" id="auth-password" placeholder="Password">
                 </div>
+                
+                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -6px; margin-bottom: 15px;">
+                    <span id="auth-forgot-link" style="color: #667781; font-size: 13px; cursor: pointer; text-decoration: underline;">Forgot Password?</span>
+                </div>
+
                 <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
             </div>
 
@@ -61,7 +66,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, sendPasswordResetEmail, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -85,6 +90,8 @@
         const switchText = document.getElementById("auth-switch-text");
         const errorDisplay = document.getElementById("error-message");
         const guestBtn = document.getElementById("guest-login-btn");
+        const forgotPasswordContainer = document.getElementById("forgot-password-container");
+        const forgotPasswordLink = document.getElementById("auth-forgot-link");
         
         const formFieldsWrapper = document.getElementById("auth-form-fields");
         const verificationScreen = document.getElementById("verification-notice-screen");
@@ -99,11 +106,39 @@
                     switchLink.innerText = "Register here";
                     switchText.innerText = "Don't have an account?";
                     if (nameGroup) nameGroup.style.display = "none";
+                    if (forgotPasswordContainer) forgotPasswordContainer.classList.remove("hidden");
                 } else {
                     submitBtn.innerText = "Register";
                     switchLink.innerText = "Login here";
                     switchText.innerText = "Already have an account?";
                     if (nameGroup) nameGroup.style.display = "block";
+                    if (forgotPasswordContainer) forgotPasswordContainer.classList.add("hidden");
+                }
+            });
+        }
+
+        // --- UPGRADED: PASSWORD RESET LOGIC ---
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener("click", async () => {
+                const emailInput = document.getElementById("auth-email");
+                const email = emailInput ? emailInput.value.trim() : "";
+
+                if (!email) {
+                    errorDisplay.innerText = "Please input your email address first to request a reset link.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+
+                errorDisplay.innerText = "Sending recovery link to your inbox...";
+                errorDisplay.style.color = "#005c4b";
+
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    errorDisplay.innerText = "A password recovery link has been safely transmitted to your email address.";
+                    errorDisplay.style.color = "#00a884";
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
                 }
             });
         }
@@ -136,81 +171,3 @@
                         
                         saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
                     } else {
-                        const credential = await createUserWithEmailAndPassword(auth, email, password);
-                        await sendEmailVerification(credential.user);
-                        
-                        await setDoc(doc(db, "users", credential.user.uid), {
-                            uid: credential.user.uid,
-                            name: name,
-                            email: email,
-                            status: "Humbled to join Mwamini Chat.",
-                            accountMode: "standard",
-                            isOnline: false
-                        });
-
-                        errorDisplay.innerText = "Verification link sent to your inbox.";
-                        errorDisplay.style.color = "#005c4b";
-                        showVerificationInterface();
-                    }
-                } catch (err) {
-                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
-                    errorDisplay.style.color = "#ea0038";
-                }
-            });
-        }
-
-        if (checkVerificationBtn) {
-            checkVerificationBtn.addEventListener("click", async () => {
-                if (auth.currentUser) {
-                    await reload(auth.currentUser);
-                    if (auth.currentUser.emailVerified) {
-                        saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
-                    } else {
-                        errorDisplay.innerText = "Verification pending. Check your inbox or spam folder.";
-                        errorDisplay.style.color = "#ea0038";
-                    }
-                }
-            });
-        }
-
-        if (guestBtn) {
-            guestBtn.addEventListener("click", async () => {
-                errorDisplay.innerText = "Setting up guest workspace access...";
-                errorDisplay.style.color = "#005c4b";
-                try {
-                    const credential = await signInAnonymously(auth);
-                    const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
-                    
-                    await setDoc(doc(db, "users", credential.user.uid), {
-                        uid: credential.user.uid,
-                        name: guestUserTag,
-                        email: "guest@mwamini.local",
-                        status: "Exploring Mwamini space via temporary access.",
-                        accountMode: "standard",
-                        isOnline: true
-                    });
-                    saveSessionAndRedirect(credential.user.uid, guestUserTag);
-                } catch (err) {
-                    errorDisplay.innerText = "Guest entry restricted: " + err.message;
-                    errorDisplay.style.color = "#ea0038";
-                }
-            });
-        }
-
-        function showVerificationInterface() {
-            if (formFieldsWrapper) formFieldsWrapper.classList.add("hidden");
-            if (verificationScreen) verificationScreen.classList.remove("hidden");
-            if (document.getElementById("or-separator")) document.getElementById("or-separator").classList.add("hidden");
-            if (guestBtn) guestBtn.classList.add("hidden");
-            if (document.getElementById("toggle-container")) document.getElementById("toggle-container").classList.add("hidden");
-        }
-
-        function saveSessionAndRedirect(uid, displayName) {
-            localStorage.setItem("session_uid", uid);
-            localStorage.setItem("session_name", displayName);
-            localStorage.setItem("session_account_mode", "standard");
-            window.location.href = "dashboard.html";
-        }
-    </script>
-</body>
-</html>
