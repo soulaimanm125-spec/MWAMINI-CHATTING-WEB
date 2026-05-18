@@ -3,48 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB - Gateway</title>
+    <title>MWAMINI CHAT WEB</title>
     <link rel="stylesheet" href="./style.css">
+    <style>
+        /* Emergency layout fallback if your style.css is missing styles */
+        .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f2f5; font-family: sans-serif; }
+        .auth-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        .input-group input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        .btn-primary:hover { background: #004d3e; }
+        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+    </style>
 </head>
 <body>
+
     <div class="auth-container">
-        <div class="auth-card" id="auth-card">
-            <h2 id="auth-title" class="brand-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 15px;">MWAMINI CHAT WEB</h2>
+        <div class="auth-card">
+            <h2 id="auth-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 5px;">MWAMINI CHAT WEB</h2>
             
-            <p id="error-message" style="color: #ea0038; font-size: 13px; font-weight: 500; text-align: center; margin-bottom: 12px; min-height: 18px;"></p>
+            <p id="error-message" style="color: #ea0038; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; min-height: 18px;"></p>
 
             <div class="input-group" id="name-group">
                 <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
             </div>
+            
             <div class="input-group">
                 <input type="email" id="auth-email" placeholder="Email Address">
             </div>
+            
             <div class="input-group">
                 <input type="password" id="auth-password" placeholder="Password">
             </div>
 
             <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
 
-            <p style="margin-top: 15px; text-align: center; font-size: 14px; color: #667781;">
+            <p style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
                 <span id="auth-switch-text">Already have an account?</span> 
-                <button type="button" id="auth-switch-link" class="btn-link" style="color: #00a884; font-weight: bold; background: none; border: none; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 5px;">Login here</button>
+                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Login here</span>
             </p>
             
-            <div class="separator-line" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
+            <div style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
                 <span style="padding: 0 10px;">OR</span>
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
             </div>
             
-            <button type="button" id="guest-login-btn" class="btn-secondary-guest" style="width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer;">Enter via Guest Mode</button>
+            <button type="button" id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
         </div>
     </div>
 
     <script type="module">
-        import { initAuthGateway } from "./auth.js";
-        document.addEventListener("DOMContentLoaded", () => {
-            initAuthGateway();
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Firebase configuration metrics
+        const firebaseConfig = {
+          apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
+          authDomain: "mwamini-chatting-web.firebaseapp.com",
+          projectId: "mwamini-chatting-web",
+          storageBucket: "mwamini-chatting-web.firebasestorage.app",
+          messagingSenderId: "640958885512",
+          appId: "1:640958885512:web:2f9a636acc85534009b93d"
+        };
+
+        // Core Initialization
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State tracker flags
+        let isLoginMode = false; 
+
+        // Target UI interactive DOM nodes
+        const submitBtn = document.getElementById("auth-submit-btn");
+        const switchLink = document.getElementById("auth-switch-link");
+        const nameGroup = document.getElementById("name-group");
+        const switchText = document.getElementById("auth-switch-text");
+        const errorDisplay = document.getElementById("error-message");
+        const guestBtn = document.getElementById("guest-login-btn");
+
+        // --- 1. TOGGLE LOGIC (LOGIN VS REGISTER MODE) ---
+        switchLink.addEventListener("click", () => {
+            isLoginMode = !isLoginMode;
+            errorDisplay.innerText = ""; // Clear errors on toggle
+            
+            if (isLoginMode) {
+                submitBtn.innerText = "Login";
+                switchLink.innerText = "Register here";
+                switchText.innerText = "Don't have an account?";
+                nameGroup.style.display = "none"; // Hide name during standard login sequence
+            } else {
+                submitBtn.innerText = "Register";
+                switchLink.innerText = "Login here";
+                switchText.innerText = "Already have an account?";
+                nameGroup.style.display = "block"; // Show name during sign up sequence
+            }
         });
+
+        // --- 2. SUBMIT FORM PROCESSOR (REGISTER / LOGIN) ---
+        submitBtn.addEventListener("click", async () => {
+            const email = document.getElementById("auth-email").value.trim();
+            const password = document.getElementById("auth-password").value.trim();
+            const name = document.getElementById("auth-name").value.trim();
+
+            errorDisplay.innerText = "Processing operation...";
+            errorDisplay.style.color = "#005c4b";
+
+            if (!email || !password || (!isLoginMode && !name)) {
+                errorDisplay.innerText = "Please fill in all layout fields.";
+                errorDisplay.style.color = "#ea0038";
+                return;
+            }
+
+            try {
+                if (isLoginMode) {
+                    // Sign-in Existing User
+                    const credential = await signInWithEmailAndPassword(auth, email, password);
+                    saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                } else {
+                    // Register New Account
+                    const credential = await createUserWithEmailAndPassword(auth, email, password);
+                    
+                    // Create base user configuration document profile block
+                    await setDoc(doc(db, "users", credential.user.uid), {
+                        uid: credential.user.uid,
+                        name: name,
+                        email: email,
+                        status: "Hey there! I am using Mwamini Chat.",
+                        accountMode: "standard",
+                        isOnline: true
+                    });
+
+                    saveSessionAndRedirect(credential.user.uid, name);
+                }
+            } catch (err) {
+                console.error(err);
+                errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                errorDisplay.style.color = "#ea0038";
+            }
+        });
+
+        // --- 3. ANONYMOUS GUEST REGISTRATION SYSTEM ---
+        guestBtn.addEventListener("click", async () => {
+            errorDisplay.innerText = "Configuring guest workspace...";
+            errorDisplay.style.color = "#005c4b";
+            
+            try {
+                const credential = await signInAnonymously(auth);
+                const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
+                
+                await setDoc(doc(db, "users", credential.user.uid), {
+                    uid: credential.user.uid,
+                    name: guestUserTag,
+                    email: "guest@mwamini.local",
+                    status: "Browsing chat lines via temporary guest access.",
+                    accountMode: "standard",
+                    isOnline: true
+                });
+
+                saveSessionAndRedirect(credential.user.uid, guestUserTag);
+            } catch (err) {
+                errorDisplay.innerText = "Guest bypass failed: " + err.message;
+                errorDisplay.style.color = "#ea0038";
+            }
+        });
+
+        function saveSessionAndRedirect(uid, displayName) {
+            localStorage.setItem("session_uid", uid);
+            localStorage.setItem("session_name", displayName);
+            localStorage.setItem("session_account_mode", "standard");
+            
+            errorDisplay.innerText = "Success! Entering workspace...";
+            errorDisplay.style.color = "#00a884";
+            
+            // Relocate down into operational workspace environment interface dashboard view
+            window.location.href = "dashboard.html";
+        }
     </script>
 </body>
 </html>
