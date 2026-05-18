@@ -27,14 +27,16 @@ let activeSessionStartTime = null;
 let audioMediaRecorder = null;
 let recordedAudioChunks = [];
 
-// Base Initializer
 function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
 
-    if (!savedUid) {
+    // Exit immediately if this script runs on the login screen
+    if (!savedUid && window.location.pathname.includes("dashboard.html")) {
         window.location.href = "index.html";
         return;
+    } else if (!savedUid) {
+        return; 
     }
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
@@ -48,7 +50,7 @@ function initDashboardPage() {
         }
     });
 
-    // --- MWAMINI STATUS POST ENGINE WITH SAFETIES ---
+    // --- MWAMINI STATUS POST ENGINE ---
     const updateStatusBtn = document.getElementById("update-status-btn");
     if (updateStatusBtn) {
         updateStatusBtn.addEventListener("click", async () => {
@@ -89,7 +91,6 @@ function initDashboardPage() {
         });
     }
 
-    // Live continuous status updater query
     const retentionThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
     onSnapshot(query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20)), (snapshot) => {
         const feedContainerTray = document.getElementById("active-statuses-view");
@@ -166,7 +167,6 @@ function initDashboardPage() {
         });
     }
 
-    // --- CALL SUITE BUTTON TRIGGERS ---
     if(document.getElementById("trigger-voice-call")) {
         document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating secure encrypted Voice Call stream..."));
     }
@@ -303,7 +303,6 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
     });
 }
 
-// Auto-run structural ignition sequence safely on script load check bounds
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initDashboardPage);
 } else {
