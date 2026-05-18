@@ -26,7 +26,7 @@ let activeSessionStartTime = null;
 
 let audioMediaRecorder = null;
 let recordedAudioChunks = [];
-const unreadNotificationMap = new Map();
+const trackedUnreadIndicatorSet = new Set();
 
 function initDashboardPage() {
     if (!document.getElementById("users-container") && !document.getElementById("message-form")) {
@@ -43,142 +43,94 @@ function initDashboardPage() {
     }
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
-    
-    // Set user online
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
-    onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if(document.getElementById("current-user-title")) document.getElementById("current-user-title").innerText = data.name;
-            if(document.getElementById("my-status-display")) document.getElementById("my-status-display").innerText = data.status || "Available";
-        }
-    });
-
-    // --- BACKGROUND CHANGER ---
-    const bgChanger = document.getElementById("background-changer");
-    if (bgChanger) {
-        bgChanger.addEventListener("change", (e) => {
-            const chosenColor = e.target.value;
-            const messageStream = document.getElementById("message-stream");
-            if (messageStream) {
-                messageStream.style.backgroundColor = chosenColor;
-                messageStream.style.color = (chosenColor === "#263238") ? "#ffffff" : "#000000";
+    // --- IMMUTABLE WALLPAPER THEME SETTER ---
+    const bgSelector = document.getElementById("background-changer");
+    if (bgSelector) {
+        bgSelector.addEventListener("change", (e) => {
+            const chosenBgColor = e.target.value;
+            const targetContainer = document.getElementById("message-stream");
+            if (targetContainer) {
+                targetContainer.style.backgroundColor = chosenBgColor;
+                targetContainer.style.color = (chosenBgColor === "#121b22") ? "#ffffff" : "#000000";
             }
         });
     }
 
-    // --- GROUP CREATION SYSTEM ---
-    const groupTypeSelect = document.getElementById("group-type-select");
-    const groupPassField = document.getElementById("group-password-input");
-    const createGroupBtn = document.getElementById("create-group-btn");
+    // --- PERMANENT GROUP REGISTRATION SCHEDULER ---
+    const groupSelectMenu = document.getElementById("group-type-select");
+    const groupPasswordField = document.getElementById("group-password-input");
+    const runCreateGroupBtn = document.getElementById("create-group-btn");
 
-    if (groupTypeSelect && groupPassField) {
-        groupTypeSelect.addEventListener("change", (e) => {
+    if (groupSelectMenu && groupPasswordField) {
+        groupSelectMenu.addEventListener("change", (e) => {
             if (e.target.value === "protected") {
-                groupPassField.classList.remove("hidden");
+                groupPasswordField.classList.remove("hidden");
             } else {
-                groupPassField.classList.add("hidden");
+                groupPasswordField.classList.add("hidden");
             }
         });
     }
 
-    if (createGroupBtn) {
-        createGroupBtn.addEventListener("click", async () => {
-            const groupNameInput = document.getElementById("group-name-input");
-            const name = groupNameInput ? groupNameInput.value.trim() : "";
-            const type = groupTypeSelect ? groupTypeSelect.value : "public";
-            const password = groupPassField ? groupPassField.value.trim() : "";
+    if (runCreateGroupBtn) {
+        runCreateGroupBtn.addEventListener("click", async () => {
+            const inputField = document.getElementById("group-name-input");
+            const groupTitle = inputField ? inputField.value.trim() : "";
+            const groupClassification = groupSelectMenu ? groupSelectMenu.value : "public";
+            const setPasswordValue = groupPasswordField ? groupPasswordField.value.trim() : "";
 
-            if (!name) {
-                alert("Please provide a name for the chat group room.");
+            if (!groupTitle) {
+                alert("Please input a valid identification label for the group.");
                 return;
             }
-            if (type === "protected" && !password) {
-                alert("Protected groups require a secure password configuration.");
+            if (groupClassification === "protected" && !setPasswordValue) {
+                alert("Protected groups require an access code validation parameter.");
                 return;
             }
 
             try {
-                const groupRef = doc(collection(db, "users")); 
-                await setDoc(groupRef, {
-                    uid: groupRef.id,
-                    name: name,
-                    status: `Group Room Type: ${type.toUpperCase()}`,
+                const uniqueGeneratedRoomId = "ROOM_" + Date.now();
+                await setDoc(doc(db, "users", uniqueGeneratedRoomId), {
+                    uid: uniqueGeneratedRoomId,
+                    name: groupTitle,
+                    status: `Active Channel Room (${groupClassification.toUpperCase()})`,
                     isGroup: true,
-                    groupType: type,
-                    groupPassword: password,
+                    groupType: groupClassification,
+                    groupPassword: setPasswordValue,
                     isOnline: true
                 });
-                alert(`Group chat room "${name}" compiled successfully! It is now permanently visible to everyone.`);
-                if(groupNameInput) groupNameInput.value = "";
-                if(groupPassField) groupPassField.value = "";
+
+                alert(`Permanent Chat Room "${groupTitle}" successfully compiled into open directories!`);
+                if(inputField) inputField.value = "";
+                if(groupPasswordField) groupPasswordField.value = "";
+                executeTargetSearchQuery(""); // Auto refresh pipeline layout view
             } catch (err) {
-                alert("Failed to build room collection: " + err.message);
+                alert("Compilation failed: " + err.message);
             }
         });
     }
 
-    // --- NEW: LIVE PERMANENT GROUPS DISCOVERY STREAM ---
-    const discoveryTray = document.getElementById("global-groups-discovery");
-    if (discoveryTray) {
-        onSnapshot(query(collection(db, "users"), where("isGroup", "==", true)), (snapshot) => {
-            discoveryTray.innerHTML = "";
-            if (snapshot.empty) {
-                discoveryTray.innerHTML = `<p style="font-size:11px; color:#667781; text-align:center; padding:10px; margin:0;">No channels built yet. Create one above!</p>`;
-                return;
-            }
-
-            snapshot.forEach((groupDoc) => {
-                const data = groupDoc.data();
-                const element = document.createElement("div");
-                element.style = "display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid #f0f2f5; cursor:pointer; background:#ffffff;";
-                element.onmouseenter = () => element.style.backgroundColor = "#f5f6f6";
-                element.onmouseleave = () => element.style.backgroundColor = "#ffffff";
-
-                const badgeTypeClass = data.groupType === "protected" ? "group-badge-protected" : "group-badge-public";
-                const labelText = data.groupType === "protected" ? "🔒 Protected" : "🔓 Public";
-
-                element.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="background:#005c4b; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:13px;">👥</div>
-                        <div>
-                            <h5 style="margin:0; font-size:13px; color:#111b21; font-weight:600;">${data.name}</h5>
-                            <span class="${badgeTypeClass}">${labelText}</span>
-                        </div>
-                    </div>
-                    <div id="badge-holder-${data.uid}"></div>
-                `;
-
-                element.addEventListener("click", () => {
-                    handleChatTargetActivation(data);
-                });
-
-                discoveryTray.appendChild(element);
-                if (unreadNotificationMap.get(data.uid)) {
-                    triggerSidebarNotificationBadge(data.uid);
-                }
-            });
-        });
-    }
-
-    // --- GLOBAL MESSAGE TRAFFIC UNREAD BADGES ---
+    // --- REAL-TIME INCOMING MESSAGE CHAT NOTIFICATIONS ---
     onSnapshot(collection(db, "chats"), (snapshot) => {
         snapshot.forEach((chatDoc) => {
-            const data = chatDoc.data();
-            onSnapshot(query(collection(db, "chats", chatDoc.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (msgSnap) => {
-                msgSnap.forEach((mDoc) => {
-                    const mData = mDoc.data();
-                    if (mData.senderId !== currentUser.uid && chatDoc.id !== activeChatId) {
-                        unreadNotificationMap.set(chatDoc.id, true);
-                        triggerSidebarNotificationBadge(chatDoc.id);
-                    }
+            const chatMetadata = chatDoc.data();
+            // Listen if user is a participant or if it's a global group room
+            if (chatDoc.id.startsWith("ROOM_") || (chatMetadata.participants && chatMetadata.participants.includes(currentUser.uid))) {
+                onSnapshot(query(collection(db, "chats", chatDoc.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (lastMsgSnap) => {
+                    lastMsgSnap.forEach((msgDoc) => {
+                        const actualMessage = msgDoc.data();
+                        if (actualMessage.senderId !== currentUser.uid && chatDoc.id !== activeChatId) {
+                            trackedUnreadIndicatorSet.add(chatDoc.id);
+                            injectNotificationBadgeToSidebar(chatDoc.id);
+                        }
+                    });
                 });
-            });
+            }
         });
     });
 
-    // --- STORIES FEED WINDOW ---
+    // --- STORIES/STATUS SYSTEMS ---
     const updateStatusBtn = document.getElementById("update-status-btn");
     if (updateStatusBtn) {
         updateStatusBtn.addEventListener("click", async () => {
@@ -248,7 +200,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- VOICE MEMO CAPTURE ---
+    // --- AUDIO VOICE CAPTURE HANDLERS ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -295,14 +247,14 @@ function initDashboardPage() {
         });
     }
 
-    // --- SEARCH USERS HANDLER ---
+    // --- DIRECTORY SEARCH TRIGGERS ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
-    executeTargetSearchQuery("");
+    executeTargetSearchQuery(""); // Run clean load automatically inside framework
 
-    // --- DISPATCH MESSAGE ---
+    // --- MESSAGE SEND FORM ACTIONS ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -338,15 +290,21 @@ async function executeTargetSearchQuery(keyword) {
     if (!listCanvas) return;
     listCanvas.innerHTML = "";
 
+    // PERMANENT VISIBILITY FEATURE: If search box is empty, load all active group rooms automatically
     if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name to open a direct DM window.</p>`;
+        const groupsSnapshot = await getDocs(query(collection(db, "users"), where("isGroup", "==", true)));
+        if(groupsSnapshot.empty) {
+            listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">No active groups are running. Type a user name above to begin chatting.</p>`;
+            return;
+        }
+        groupsSnapshot.forEach((groupDoc) => buildSidebarChannelElement(groupDoc.data()));
         return;
     }
 
-    // Users lookup explicitly
-    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword), where("isGroup", "==", null)));
+    // Lookup tailored keyword elements matches
+    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified users found matching that name.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified target identities found matching that exact name.</p>`;
         return;
     }
 
@@ -361,21 +319,22 @@ async function executeTargetSearchQuery(keyword) {
 function buildSidebarChannelElement(userData) {
     const canvas = document.getElementById("users-container");
     const row = document.createElement("div");
-    row.id = `sidebar-row-${userData.uid}`;
-    row.style = "display:flex; align-items:center; justify-content:space-between; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
+    row.style = "display:flex; align-items:center; justify-content:between; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
     row.onmouseenter = () => row.style.backgroundColor = "#f5f6f6";
     row.onmouseleave = () => row.style.backgroundColor = "transparent";
 
-    const presenceBadgeClass = userData.isOnline ? "status-online" : "status-offline";
-    const presenceText = userData.isOnline ? "online" : "offline";
+    // LIVE PRESENCE ONLINE/OFFLINE BADGES ENGINE
+    const isRoom = userData.isGroup === true;
+    const presenceClass = userData.isOnline ? "status-online" : "status-offline";
+    const presenceText = isRoom ? (userData.groupType.toUpperCase()) : (userData.isOnline ? "online" : "offline");
 
     row.innerHTML = `
         <div style="display:flex; align-items:center; gap:10px; flex:1;">
-            <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${userData.name.charAt(0).toUpperCase()}</div>
+            <div style="background:${isRoom ? '#005c4b' : '#00a884'}; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${isRoom ? '👥' : userData.name.charAt(0).toUpperCase()}</div>
             <div style="flex: 1;">
                 <h4 style="margin:0; font-size:14px; color:#111b21; font-weight: 600; display:flex; align-items:center;">
                     ${userData.name}
-                    <span class="status-badge ${presenceBadgeClass}">${presenceText}</span>
+                    <span class="status-badge ${presenceClass}">${presenceText}</span>
                 </h4>
                 <p style="margin:0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${userData.status || 'Available'}</p>
             </div>
@@ -384,63 +343,54 @@ function buildSidebarChannelElement(userData) {
     `;
 
     row.addEventListener("click", () => {
-        handleChatTargetActivation(userData);
+        // PASSWORD GATE IMPLEMENTATION ON PROTECTED ACTIVE CHAT GROUPS
+        if (isRoom && userData.groupType === "protected") {
+            const challengedTokenInput = prompt(`Enter the secure access password configuration key to connect to "${userData.name}":`);
+            if (challengedTokenInput !== userData.groupPassword) {
+                alert("Access Denied: Invalid security password token matching key.");
+                return;
+            }
+        }
+
+        activeChatId = userData.uid; 
+        activeSessionStartTime = new Date();
+
+        // Clear existing notifications upon opening the stream
+        trackedUnreadIndicatorSet.delete(activeChatId);
+        const activeBadgeRef = document.getElementById(`badge-holder-${userData.uid}`);
+        if(activeBadgeRef) activeBadgeRef.innerHTML = "";
+
+        document.getElementById("no-chat-selected").classList.add("hidden");
+        document.getElementById("active-chat-area").classList.remove("hidden");
+        document.getElementById("chat-header-name").innerText = userData.name;
+
+        const headerPresenceBadge = document.getElementById("chat-header-presence-badge");
+        if(headerPresenceBadge) {
+            headerPresenceBadge.className = `status-badge ${presenceClass}`;
+            headerPresenceBadge.innerText = presenceText;
+        }
+
+        setDoc(doc(db, "chats", activeChatId), {
+            chatId: activeChatId,
+            participants: isRoom ? [currentUser.uid] : [currentUser.uid, userData.uid],
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
     });
 
     if(canvas) {
         canvas.appendChild(row);
-        if (unreadNotificationMap.get(activeChatId)) {
-            triggerSidebarNotificationBadge(activeChatId);
+        if (trackedUnreadIndicatorSet.has(userData.uid)) {
+            injectNotificationBadgeToSidebar(userData.uid);
         }
     }
 }
 
-// --- CENTRALIZED HANDLER FOR ALL CLICK CHAT ENTRY POINTS ---
-function handleChatTargetActivation(userData) {
-    if (userData.isGroup && userData.groupType === "protected") {
-        const enteredPassword = prompt(`"${userData.name}" is a protected channel room. Please type the group password to connect:`);
-        if (enteredPassword !== userData.groupPassword) {
-            alert("Access authorization rejected: Invalid group password token.");
-            return;
-        }
-    }
-
-    activeChatId = userData.isGroup ? userData.uid : [currentUser.uid, userData.uid].sort().join("_");
-    activeSessionStartTime = new Date();
-
-    unreadNotificationMap.delete(activeChatId);
-    const badgeElement = document.getElementById(`badge-holder-${userData.uid}`);
-    if(badgeElement) badgeElement.innerHTML = "";
-
-    document.getElementById("no-chat-selected").classList.add("hidden");
-    document.getElementById("active-chat-area").classList.remove("hidden");
-    document.getElementById("chat-header-name").innerText = userData.name;
-    
-    const headerBadge = document.getElementById("chat-header-presence-badge");
-    if (headerBadge) {
-        if (!userData.isGroup) {
-            headerBadge.className = `status-badge ${userData.isOnline ? 'status-online' : 'status-offline'}`;
-            headerBadge.innerText = userData.isOnline ? 'online' : 'offline';
-        } else {
-            headerBadge.className = userData.groupType === "protected" ? "group-badge-protected" : "group-badge-public";
-            headerBadge.innerText = userData.groupType === "protected" ? "🔒 Protected" : "🔓 Public";
-        }
-    }
-
-    setDoc(doc(db, "chats", activeChatId), {
-        chatId: activeChatId,
-        participants: userData.isGroup ? [currentUser.uid] : [currentUser.uid, userData.uid],
-        updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
-}
-
-function triggerSidebarNotificationBadge(chatId) {
-    const targetedRowId = chatId.includes("_") ? chatId.split("_").find(id => id !== currentUser.uid) : chatId;
-    const badgeContainer = document.getElementById(`badge-holder-${targetedRowId}`);
-    if (badgeContainer) {
-        badgeContainer.innerHTML = `<span class="unread-indicator">NEW</span>`;
+function injectNotificationBadgeToSidebar(targetId) {
+    const spaceHolder = document.getElementById(`badge-holder-${targetId}`);
+    if (spaceHolder) {
+        spaceHolder.innerHTML = `<span class="unread-indicator">NEW</span>`;
     }
 }
 
@@ -464,13 +414,28 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                 if (data.type === "audio") {
                     visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px; outline:none;"></audio>`;
                 } else {
+                    // GOOGLE ASSISTANCE SPEAKER READ-OUT FEATURE INTEGRATED HERE
                     visualPayloadOutputBlock = `
-                        <div style="font-size:11px; font-weight:bold; color:#005c4b; margin-bottom:2px;">${data.senderName}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:30px; margin-bottom:2px;">
+                            <span style="font-size:11px; font-weight:bold; color:#005c4b;">${data.senderName}</span>
+                            <span class="read-aloud-bot" style="cursor:pointer; font-size:12px;" title="Google Voice Assistant Reading">🔊 Read Aloud</span>
+                        </div>
                         <p style="margin:0; font-size:14.5px; white-space:pre-wrap; line-height:1.4; color:#111b21;">${data.text}</p>
                     `;
                 }
 
                 bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.08); max-width:65%; word-wrap:break-word;">${visualPayloadOutputBlock}</div>`;
+                
+                // Mount audio synthesis reader dynamically onto the elements stream
+                const speakerActionBtn = bubbleRow.querySelector(".read-aloud-bot");
+                if(speakerActionBtn) {
+                    speakerActionBtn.addEventListener("click", () => {
+                        const speakerVoiceNarrationInstance = new SpeechSynthesisUtterance(data.text);
+                        speakerVoiceNarrationInstance.lang = 'en-US';
+                        window.speechSynthesis.speak(speakerVoiceNarrationInstance);
+                    });
+                }
+
                 chatBoxWindow.appendChild(bubbleRow);
             }
         });
