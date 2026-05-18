@@ -3,170 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB - Dashboard</title>
+    <title>MWAMINI CHAT WEB - Workspace</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        body { background-color: #00a884; background-image: linear-gradient(180deg, #00a884 0%, #008069 100%); height: 100vh; display: flex; padding: 20px; }
+        body { background-color: #00a884; background-image: linear-gradient(180deg, #00a884 0%, #008069 100%); height: 100vh; display: flex; padding: 15px; overflow: hidden; }
         
-        .app-window { display: flex; width: 100%; max-width: 1440px; height: 100%; margin: 0 auto; background-color: #ffffff; box-shadow: 0 6px 24px rgba(0,0,0,0.15); border-radius: 12px; overflow: hidden; }
+        .app-window { display: flex; width: 100%; max-width: 1600px; height: 100%; margin: 0 auto; background-color: #ffffff; box-shadow: 0 6px 24px rgba(0,0,0,0.15); border-radius: 12px; overflow: hidden; }
         
-        /* Sidebar Elements */
-        .sidebar { width: 32%; min-width: 360px; max-width: 450px; height: 100%; border-right: 1px solid #e9edef; display: flex; flex-direction: column; background: #ffffff; }
+        /* Left Navigation Control Side */
+        .sidebar-left { width: 30%; min-width: 340px; max-width: 400px; height: 100%; border-right: 1px solid #e9edef; display: flex; flex-direction: column; background: #ffffff; }
         .sidebar-header { height: 64px; background: #f0f2f5; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #e9edef; }
-        .user-profile h3 { font-size: 15px; color: #111b21; font-weight: 600; }
-        .btn-logout { background: #ea0038; color: white; border: none; padding: 8px 14px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
-        .btn-logout:hover { background: #c2002f; }
         
-        /* Group Creator Tool Panel */
-        .group-creation-box { padding: 16px; background: #f8f9fa; border-bottom: 1px solid #e9edef; display: flex; flex-direction: column; gap: 8px; }
-        .group-creation-box label { font-size: 11px; font-weight: 700; color: #008069; letter-spacing: 0.5px; }
-        .group-creation-box input, .group-creation-box select { width: 100%; padding: 8px 12px; border: 1px solid #e1e4e6; border-radius: 6px; font-size: 13px; outline: none; background: #ffffff; transition: border 0.2s; }
-        .group-creation-box input:focus, .group-creation-box select:focus { border-color: #00a884; }
-        .btn-group-create { background: #008069; color: white; border: none; padding: 9px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; margin-top: 4px; }
-        .btn-group-create:hover { background: #005c4b; }
+        /* Room Creator Box */
+        .group-creation-box { padding: 14px; background: #f8f9fa; border-bottom: 1px solid #e9edef; display: flex; flex-direction: column; gap: 6px; }
+        .group-creation-box label { font-size: 10px; font-weight: 700; color: #008069; letter-spacing: 0.5px; }
+        .group-creation-box input, .group-creation-box select { width: 100%; padding: 7px 10px; border: 1px solid #e1e4e6; border-radius: 6px; font-size: 13px; outline: none; }
+        .btn-group-create { background: #008069; color: white; border: none; padding: 8px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
 
         .search-box { padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #f0f2f5; }
-        .search-box input { width: 100%; padding: 8px 12px 8px 36px; background: #f0f2f5; border: none; border-radius: 8px; font-size: 14px; outline: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23667781"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: 12px center; }
+        .search-box input { width: 100%; padding: 8px 12px 8px 36px; background: #f0f2f5; border: none; border-radius: 8px; font-size: 13px; outline: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23667781"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: 12px center; }
         .user-list { flex: 1; overflow-y: auto; background: #ffffff; }
         
-        /* Main Chat Canvas Panels */
+        /* Center Chat Display Field */
         .chat-panel { flex: 1; height: 100%; display: flex; flex-direction: column; background: #efeae2; position: relative; }
         
-        /* Premium Stunning Welcome Screen UI */
-        .welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; background: #f8f9fa; border-bottom: 6px solid #00a884; }
-        .welcome-hero-art { font-size: 82px; margin-bottom: 20px; animation: floatAnim 3s ease-in-out infinite; }
-        .welcome-title { color: #111b21; font-size: 32px; font-weight: 300; margin-bottom: 12px; }
-        .welcome-title strong { color: #008069; font-weight: 700; }
-        .welcome-subtitle { color: #667781; font-size: 15px; max-width: 520px; line-height: 1.6; margin-bottom: 30px; }
-        .welcome-features-grid { display: flex; gap: 20px; max-width: 600px; justify-content: center; }
-        .feature-card { background: #ffffff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e9edef; flex: 1; text-align: left; }
-        .feature-card h4 { font-size: 14px; color: #111b21; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-        .feature-card p { font-size: 12px; color: #667781; line-height: 1.4; }
+        /* Right Utilities Sidebar (Eliminates Chaos) */
+        .sidebar-right { width: 28%; min-width: 280px; max-width: 360px; height: 100%; border-left: 1px solid #e9edef; background: #f8f9fa; display: flex; flex-direction: column; }
+        .right-header { height: 64px; background: #f0f2f5; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #e9edef; font-weight: 600; color: #111b21; }
+        .right-body { padding: 16px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; flex: 1; }
 
-        @keyframes floatAnim {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
+        /* Welcome Page Styles */
+        .welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; background: #f8f9fa; }
+        .welcome-hero-art { font-size: 70px; margin-bottom: 15px; }
+        .welcome-title { color: #111b21; font-size: 28px; margin-bottom: 10px; }
+        .welcome-subtitle { color: #667781; font-size: 14px; max-width: 480px; line-height: 1.5; margin-bottom: 20px; }
 
         .chat-area { display: flex; flex-direction: column; height: 100%; }
         .hidden { display: none !important; }
         
-        /* Status Badges */
-        .status-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+        /* Status Tags */
+        .room-meta-info { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #008069; letter-spacing: 0.8px; margin-bottom: 2px; display: block; }
+        .status-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
         .status-online { background: #e8f5e9; color: #1b5e20; }
         .status-offline { background: #f5f5f5; color: #616161; }
         .status-public { background: #e0f7fa; color: #006064; }
         .status-protected { background: #fff3e0; color: #e65100; }
-        .unread-indicator { background: #00a884; color: white; border-radius: 12px; padding: 3px 8px; font-size: 11px; font-weight: bold; }
+        .unread-indicator { background: #00a884; color: white; border-radius: 12px; padding: 2px 6px; font-size: 10px; font-weight: bold; }
+
+        .utility-card { background: white; padding: 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e9edef; }
+        .utility-card h4 { font-size: 13px; color: #111b21; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .btn-action { width: 100%; background: #008069; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; margin-top: 6px; }
+        .btn-action:hover { background: #005c4b; }
+        .share-link-box { background: #f0f2f5; padding: 8px; border-radius: 4px; font-size: 12px; color: #4a5568; word-break: break-all; margin-top: 5px; border: 1px dashed #cbd5e1; font-family: monospace; }
     </style>
 </head>
 <body>
     <div class="app-window">
-        <aside class="sidebar">
+        <aside class="sidebar-left">
             <header class="sidebar-header">
-                <div class="user-profile">
-                    <div>
-                        <h3 id="current-user-title">MWAMINI WORKSPACE</h3>
-                        <p id="my-status-display" style="font-size: 12px; color: #667781; font-style: italic;">Connecting state...</p>
-                    </div>
+                <div>
+                    <h3 id="current-user-title">MWAMINI WORKSPACE</h3>
+                    <p id="my-status-display" style="font-size: 11px; color: #667781; font-style: italic;">Connecting...</p>
                 </div>
-                <button id="logout-btn" class="btn-logout">Leave Chat</button>
+                <button id="logout-btn" style="background:#ea0038; color:white; border:none; padding:6px 10px; font-size:11px; font-weight:bold; border-radius:4px; cursor:pointer;">Exit</button>
             </header>
 
-            <div class="status-updater-tray" style="display: flex; flex-direction: column; gap: 5px; padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #f0f2f5;">
-                <div style="display: flex; gap: 5px; width: 100%; align-items: center;">
-                    <input type="text" id="status-input" placeholder="What's on your mind today?" style="flex: 1; padding: 8px 12px; border: 1px solid #e1e4e6; border-radius: 6px; outline: none; font-size: 13px;">
-                    <input type="file" id="status-media-file" style="display: none;" accept="image/*,video/*">
-                    <label for="status-media-file" style="cursor: pointer; font-size: 18px; padding: 0 4px;" title="Attach Status Media">🖼️</label>
-                    <button id="update-status-btn" style="background: #00a884; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;">Post</button>
-                </div>
-                <div id="active-statuses-view" style="display: flex; gap: 8px; overflow-x: auto; margin-top: 5px; padding: 4px 0;"></div>
+            <div style="display: flex; gap: 5px; padding: 10px 14px; background: #ffffff; border-bottom: 1px solid #f0f2f5; align-items: center;">
+                <input type="text" id="status-input" placeholder="Update your status story..." style="flex: 1; padding: 6px 10px; border: 1px solid #e1e4e6; border-radius: 6px; font-size: 12px; outline: none;">
+                <button id="update-status-btn" style="background: #00a884; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Post</button>
             </div>
+            <div id="active-statuses-view" style="display: flex; gap: 6px; overflow-x: auto; padding: 6px 14px; background: #fff; border-bottom: 1px solid #f0f2f5;"></div>
 
             <div class="group-creation-box">
-                <label>CREATE GLOBAL CHAT ROOM</label>
-                <input type="text" id="group-name-input" placeholder="Enter Channel Room Name...">
+                <label>LAUNCH NEW CHAT ROOM</label>
+                <input type="text" id="group-name-input" placeholder="Room Name Label...">
                 <select id="group-type-select">
                     <option value="public">🌐 Public Room (Open Access)</option>
-                    <option value="protected">🔒 Protected Room (Requires Password Verification)</option>
+                    <option value="protected">🔒 Protected Room (Password Gate)</option>
                 </select>
-                <input type="password" id="group-password-input" placeholder="Assign Secure Room Entry Password" class="hidden">
-                <button id="create-group-btn" class="btn-group-create">Build & Publish Room</button>
+                <input type="password" id="group-password-input" placeholder="Set Access Password Token..." class="hidden">
+                <button id="create-group-btn" class="btn-group-create">Create & Publish Channel</button>
             </div>
 
             <div class="search-box">
-                <input type="text" id="search-users" placeholder="Search verified profiles or group threads...">
+                <input type="text" id="search-users" placeholder="Search direct users or shared groups...">
             </div>
             
             <div class="user-list" id="users-container"></div>
         </aside>
 
         <main class="chat-panel" id="chat-panel-view">
-            
             <div id="no-chat-selected" class="welcome-screen">
-                <div class="welcome-hero-art">💻</div>
-                <h2 class="welcome-title">Mwamini <strong>Chat Web</strong></h2>
-                <p class="welcome-subtitle">
-                    Experience secure, rapid communications directly from your browser. Create public open forums, configure password-protected corporate channels, or locate verified professional identities in real time.
-                </p>
-                
-                <div class="welcome-features-grid">
-                    <div class="feature-card">
-                        <h4>🌐 Permanent Rooms</h4>
-                        <p>Channels remain dynamically visible to all users right upon logging into the platform.</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>🔒 Protected Entry</h4>
-                        <p>Enforce end-to-end access code hurdles before external accounts can read message logs.</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>🗣️ AI Read Aloud</h4>
-                        <p>Integrated native cloud assistant engine translates incoming text packets into spoken audio instantly.</p>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 40px; font-size: 12px; color: #8696a0; display: flex; align-items: center; gap: 5px;">
-                    <span>🔒 End-to-End Encrypted Data Infrastructure</span>
-                </div>
+                <div class="welcome-hero-art">💬</div>
+                <h2 class="welcome-title">Mwamini <strong>Secure Connect</strong></h2>
+                <p class="welcome-subtitle">Select a contact profile or launch an upgrade group channel. Invite teammates and verify entry access codes seamlessly in real-time.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
                 <header class="chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #f0f2f5; border-bottom: 1px solid #e9edef; height: 64px;">
                     <div>
+                        <span id="chat-header-group-meta" class="room-meta-info"></span>
                         <div style="display: flex; align-items: center; gap: 4px;">
-                            <h3 id="chat-header-name" style="margin: 0; color: #111b21; font-size: 16px; font-weight: 600;">Active Session</h3>
+                            <h3 id="chat-header-name" style="margin: 0; color: #111b21; font-size: 15px; font-weight: 600;">Active Session</h3>
                             <span id="chat-header-presence-badge"></span>
                         </div>
-                        <span id="chat-header-status-text" style="font-size: 12px; color: #667781;">Secure real-time alignment online</span>
                     </div>
                     
-                    <div style="display: flex; gap: 16px; font-size: 18px; align-items: center;">
-                        <select id="background-changer" style="font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid #ccc; background: white; cursor: pointer; outline: none; font-weight: 500;" title="Room Wallpaper">
-                            <option value="#efeae2">📦 Default WhatsApp Tan</option>
-                            <option value="#f0f4c3">🌿 Light Sage Green</option>
-                            <option value="#bbdefb">💎 Pale Electric Blue</option>
-                            <option value="#e1bee7">🔮 Deep Royal Lilac</option>
-                            <option value="#121b22">🌙 Dark Night Mode</option>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <select id="background-changer" style="font-size: 11px; padding: 4px; border-radius: 4px; border: 1px solid #ccc; background: white; cursor: pointer;">
+                            <option value="#efeae2">📦 Tan Base</option>
+                            <option value="#bbdefb">💎 Electric Blue</option>
+                            <option value="#121b22">🌙 Night Vision</option>
                         </select>
-                        <span id="trigger-voice-call" style="cursor: pointer;" title="Voice Call">📞</span>
-                        <span id="trigger-video-call" style="cursor: pointer;" title="Video Call">📹</span>
                     </div>
                 </header>
                 
-                <div class="message-stream" id="message-stream" style="flex:1; overflow-y:auto; padding:20px; background-color:#efeae2; transition: all 0.2s;"></div>
+                <div class="message-stream" id="message-stream" style="flex:1; overflow-y:auto; padding:20px; background-color:#efeae2;"></div>
                 
                 <footer class="chat-input-bar" style="padding: 10px 16px; background: #f0f2f5; display: flex; align-items: center; gap: 12px;">
-                    <button type="button" id="voice-record-btn" title="Record Voice Memo" style="background: transparent; border: none; font-size: 22px; cursor: pointer;">🎤</button>
-                    <span id="voice-recording-status" class="hidden" style="color: #ea0038; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">● RECORDING</span>
-
-                    <form id="message-form" style="display: flex; flex: 1; gap: 12px; align-items: center; margin: 0;">
-                        <input type="text" id="message-input" placeholder="Type a secure message here..." autocomplete="off" style="flex:1; padding:12px 16px; border-radius:8px; border:1px solid #e1e4e6; outline:none; font-size:14px;">
-                        <button type="submit" style="padding:11px 22px; background:#008069; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:14px; transition: background 0.2s;">Send</button>
+                    <button type="button" id="voice-record-btn" title="Record Audio" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">🎤</button>
+                    <span id="voice-recording-status" class="hidden" style="color: #ea0038; font-size: 10px; font-weight: bold;">● RECORDING</span>
+                    <form id="message-form" style="display: flex; flex: 1; gap: 12px; margin: 0;">
+                        <input type="text" id="message-input" placeholder="Write a secure transmission..." autocomplete="off" style="flex:1; padding:10px 14px; border-radius:6px; border:1px solid #e1e4e6; font-size:13px; outline:none;">
+                        <button type="submit" style="padding:10px 20px; background:#008069; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:13px;">Send</button>
                     </form>
                 </footer>
             </div>
         </main>
+
+        <aside class="sidebar-right hidden" id="group-utilities-sidebar">
+            <div class="right-header">Channel Dashboard</div>
+            <div class="right-body">
+                <div class="utility-card">
+                    <h4>Add Colleague to Room</h4>
+                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Directly register a member profile inside this channel thread pipeline.</p>
+                    <select id="utility-member-dropdown" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px;"></select>
+                    <button id="btn-add-member-action" class="btn-action">Provision Access</button>
+                </div>
+
+                <div class="utility-card">
+                    <h4>Share Secure Invite</h4>
+                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Generate an entry verification card string package for remote distribution.</p>
+                    <button id="btn-generate-invite" class="btn-action" style="background: #00a884;">Generate Workspace Key</button>
+                    <div id="invite-link-display" class="share-link-box hidden"></div>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <script type="module" src="./app.js"></script>
