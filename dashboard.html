@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB</title>
+    <title>MWAMINI CHAT WEB - Dashboard</title>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -11,29 +11,31 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <div id="my-profile-pic-container" style="cursor: pointer; position: relative; margin-right: 5px;">
+                    <div id="my-profile-pic-container" style="cursor: pointer;" title="Modify Avatar Photo">
                         <div class="wa-avatar" id="my-global-avatar-preview">M</div>
                         <input type="file" id="avatar-image-upload" style="display: none;" accept="image/*">
                     </div>
                     <div>
                         <h3 id="current-user-title">MWAMINI</h3>
-                        <p id="my-status-display" style="font-size: 12px; color: #667781; font-style: italic;">HI</p>
+                        <p id="my-status-display" style="font-size: 11px; color: #667781; font-style: italic;">Online</p>
                     </div>
                 </div>
-                <div style="display: flex; gap: 5px; align-items: center;">
-                    <button id="create-group-btn" class="btn-group-action" style="background: #008069; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">+ Group</button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="create-group-btn" style="background: #008069; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">+ Group</button>
                     <button id="logout-btn" class="btn-logout">Leave Chat</button>
                 </div>
             </header>
 
-            <div class="status-updater-tray">
-                <input type="text" id="status-input" placeholder="Update your WhatsApp status...">
-                <button id="update-status-btn">Save</button>
+            <div class="status-updater-tray" style="display: flex; flex-direction: column; gap: 5px; padding: 12px 16px; background: #f0f2f5;">
+                <div style="display: flex; gap: 5px; width: 100%;">
+                    <input type="text" id="status-input" placeholder="Update your WhatsApp status...">
+                    <button id="update-status-btn" style="background: #008069; color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 13px;">Save</button>
+                </div>
+                <div id="active-statuses-view" style="display: flex; gap: 8px; overflow-x: auto; margin-top: 5px; padding: 2px 0;"></div>
             </div>
 
-            <div class="search-box" style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="search-users" placeholder="Type exact username to find user...">
-                <input type="color" id="bg-color-picker" value="#efeae2" title="Change Chat Background" style="width: 35px; height: 35px; padding: 0; border: none; border-radius: 50%; cursor: pointer;">
+            <div class="search-box">
+                <input type="text" id="search-users" placeholder="Search or start new chat">
             </div>
             
             <div class="user-list" id="users-container"></div>
@@ -43,23 +45,25 @@
             <div id="no-chat-selected" class="welcome-screen">
                 <div class="welcome-banner">🌐</div>
                 <h2>MWAMINI CHAT WEB</h2>
-                <p>Send secure files, voice recordings, and real-time text streams across an end-to-end controlled dashboard.</p>
+                <p>Send secure files and real-time text streams across an isolated private channel network.</p>
             </div>
 
             <div id="active-chat-area" class="chat-area hidden">
                 <header class="chat-header">
-                    <h3 id="chat-header-name">MURIGO</h3>
-                    <span class="online-status">secure session channel</span>
+                    <div>
+                        <h3 id="chat-header-name">Target Session</h3>
+                        <span class="online-status" id="chat-header-status-text">secure session channel</span>
+                    </div>
                 </header>
                 
                 <div class="message-stream" id="message-stream"></div>
                 
                 <footer class="chat-input-bar">
                     <input type="file" id="file-input" style="display: none;">
-                    <label for="file-input" class="file-attach-btn" title="Attach Media File" id="file-attachment-label" style="cursor: pointer; font-size: 24px; padding: 0 4px;">📎</label>
+                    <label for="file-input" class="file-attach-btn" title="Send Data Document Attachment" style="cursor: pointer; font-size: 22px;">📎</label>
 
-                    <button type="button" id="voice-record-btn" title="Hold to record or tap to toggle" style="background: transparent; border: none; font-size: 22px; cursor: pointer; padding: 0 5px;">🎤</button>
-                    <span id="voice-recording-status" class="hidden" style="color: red; font-size: 13px; font-weight: bold; animation: blink 1s infinite;">● REC 0:00</span>
+                    <button type="button" id="voice-record-btn" title="Transmit Audio Voice Memo Note" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 0 5px;">🎤</button>
+                    <span id="voice-recording-status" class="hidden" style="color: #ea0038; font-size: 11px; font-weight: bold; margin-right: 5px;">● REC</span>
 
                     <form id="message-form" style="display: flex; flex: 1; gap: 10px; align-items: center;">
                         <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
@@ -72,7 +76,9 @@
 
     <script type="module">
         import { initDashboardPage } from "./app.js";
-        initDashboardPage();
+        document.addEventListener("DOMContentLoaded", () => {
+            initDashboardPage();
+        });
     </script>
 </body>
 </html>
