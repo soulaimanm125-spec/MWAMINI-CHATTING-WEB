@@ -35,7 +35,6 @@ const firebaseConfig = {
   appId: "1:640958885512:web:2f9a636acc85534009b93d",
   measurementId: "G-SW9FBXX78G"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -498,4 +497,118 @@ function loadSidebarRooms(searchKeyword) {
     }
 
     // Stream available Groups
-    const gQuery = query(collection(db, "
+    const gQuery = query(collection(db, "groups"), where("accountMode", "==", currentUser.accountMode));
+    getDocs(gQuery).then((snapshot) => {
+        snapshot.forEach((gDoc) => {
+            const gData = gDoc.data();
+            if (gData.members.includes(currentUser.name.toUpperCase())) {
+                if (cleanKeyword === "" || gData.name.toUpperCase().includes(cleanKeyword)) {
+                    renderRoomRow(gData, true);
+                }
+            }
+        });
+    });
+}
+
+function renderRoomRow(roomData, isGroupObj) {
+    const container = document.getElementById("users-container");
+    const item = document.createElement("div");
+    item.className = "wa-user-item";
+
+    const isOnline = !isGroupObj && roomData.isOnline;
+    const badgeClass = isOnline ? "badge-online" : "badge-offline";
+    const statusText = isGroupObj ? "Community Space" : (isOnline ? "● Online" : "Offline");
+
+    const avatarHTML = isGroupObj ? "👥" : (roomData.avatarUrl 
+        ? `<img src="${roomData.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+        : roomData.name.charAt(0).toUpperCase());
+
+    item.innerHTML = `
+        <div class="wa-avatar-container">
+            <div class="wa-avatar" style="background: ${isGroupObj ? '#005c4b' : '#00a884'}">${avatarHTML}</div>
+            <span class="presence-dot ${badgeClass}"></span>
+        </div>
+        <div class="wa-user-info">
+            <div class="wa-user-header-row">
+                <h4>${roomData.name}</h4>
+                <span class="presence-status-text ${badgeClass}">${statusText}</span>
+            </div>
+            <p class="wa-user-status-text">${isGroupObj ? 'Group Discussion Board' : '💬 ' + (roomData.status || 'Available')}</p>
+        </div>
+    `;
+
+    item.addEventListener("click", () => {
+        isGroupChat = isGroupObj;
+        if (isGroupObj) {
+            openGroupChatChannel(roomData);
+        } else {
+            openPrivateChatChannel(roomData);
+        }
+    });
+    container.appendChild(item);
+}
+
+async function openPrivateChatChannel(targetUser) {
+    activeChatId = [currentUser.uid, targetUser.uid].sort().join("_");
+    document.getElementById("no-chat-selected").classList.add("hidden");
+    document.getElementById("active-chat-area").classList.remove("hidden");
+    document.getElementById("chat-header-name").innerText = targetUser.name;
+
+    const chatRef = doc(db, "chats", activeChatId);
+    const chatSnap = await getDoc(chatRef);
+    if (!chatSnap.exists()) {
+        await setDoc(chatRef, {
+            chatId: activeChatId,
+            participants: [currentUser.uid, targetUser.uid],
+            updatedAt: serverTimestamp()
+        });
+    }
+    listenToMessageCollectionStream(collection(db, "chats", activeChatId, "messages"));
+}
+
+async function openGroupChatChannel(groupData) {
+    activeChatId = groupData.groupId;
+    document.getElementById("no-chat-selected").classList.add("hidden");
+    document.getElementById("active-chat-area").classList.remove("hidden");
+    document.getElementById("chat-header-name").innerText = groupData.name;
+
+    listenToMessageCollectionStream(collection(db, "groups", activeChatId, "messages"));
+}
+
+function listenToMessageCollectionStream(msgCollectionRef) {
+    if (unsubscribeMessages) unsubscribeMessages();
+    const mQuery = query(msgCollectionRef, orderBy("createdAt", "asc"));
+
+    unsubscribeMessages = onSnapshot(mQuery, (snapshot) => {
+        const stream = document.getElementById("message-stream");
+        if (!stream) return;
+        stream.innerHTML = "";
+
+        snapshot.forEach((msgDoc) => {
+            const msg = msgDoc.data();
+            const bubbleRow = document.createElement("div");
+            bubbleRow.className = `wa-message-row ${msg.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+            
+            let itemHTML = "";
+            const senderTag = isGroupChat && msg.senderId !== currentUser.uid ? `<small style="display:block; color:#008069; font-weight:bold; margin-bottom:3px;">${msg.senderName || 'User'}</small>` : "";
+
+            if (msg.type === "voice") {
+                itemHTML = `${senderTag}<audio src="${msg.fileUrl}" controls style="max-width:100%; outline:none;"></audio>`;
+            } else if (msg.type === "image") {
+                itemHTML = `${senderTag}<img src="${msg.fileUrl}" style="max-width:100%; max-height:250px; border-radius:6px; cursor:pointer;" onclick="window.open('${msg.fileUrl}')">`;
+            } else if (msg.type === "video") {
+                itemHTML = `${senderTag}<video src="${msg.fileUrl}" controls style="max-width:100%; max-height:250px; border-radius:6px;"></video>`;
+            } else if (msg.type === "audio") {
+                itemHTML = `${senderTag}<audio src="${msg.fileUrl}" controls style="max-width:100%;"></audio>`;
+            } else if (msg.type === "document") {
+                itemHTML = `${senderTag}<div class="shared-doc-box" onclick="window.open('${msg.fileUrl}')" style="cursor:pointer; display:flex; gap:10px; background:rgba(0,0,0,0.04); padding:8px; border-radius:6px; font-size:13px;">📄 <span>${msg.text}</span></div>`;
+            } else {
+                itemHTML = `${senderTag}<p class="bubble-text">${msg.text}</p>`;
+            }
+
+            bubbleRow.innerHTML = `<div class="wa-bubble">${itemHTML}</div>`;
+            stream.appendChild(bubbleRow);
+        });
+        stream.scrollTop = stream.scrollHeight;
+    });
+}
