@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, onSnapshot, doc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -21,7 +21,7 @@ const storage = getStorage(app);
 
 let currentUser = null; 
 let activeChatId = null;
-let selectedChatObject = null; // Caches complete model details
+let selectedChatObject = null; 
 let unsubscribeMessages = null;
 let activeSessionStartTime = null; 
 
@@ -53,10 +53,8 @@ function initDashboardPage() {
         }
     });
 
-    // --- SIDEBAR COMPONENT DISCOVERY POPULATION ---
     populateUtilityUsersDropdown();
 
-    // --- CHAT WALLPAPER COLOR CONTROLLER ---
     const backgroundSelector = document.getElementById("background-changer");
     if (backgroundSelector) {
         backgroundSelector.addEventListener("change", (e) => {
@@ -69,7 +67,7 @@ function initDashboardPage() {
         });
     }
 
-    // --- INSTANT GROUP CREATION LOGIC ---
+    // --- INSTANT GROUP CREATION (TRACKS MEMBERS ARRAY UPON PROVISIONING) ---
     const groupSelectMenu = document.getElementById("group-type-select");
     const groupPasswordField = document.getElementById("group-password-input");
     const createGroupActionBtn = document.getElementById("create-group-btn");
@@ -109,10 +107,11 @@ function initDashboardPage() {
                     isGroup: true,
                     groupType: architectureType,
                     groupPassword: codeKeyPayload,
-                    isOnline: true
+                    isOnline: true,
+                    allowedMembers: [currentUser.uid] // Creator initialized automatically
                 });
 
-                alert(`Global Chat Room "${title}" created successfully! It is now permanently visible to all members.`);
+                alert(`Global Chat Room "${title}" created successfully!`);
                 if(groupNameInput) groupNameInput.value = "";
                 if(groupPasswordField) groupPasswordField.value = "";
                 executeTargetSearchQuery(""); 
@@ -122,7 +121,7 @@ function initDashboardPage() {
         });
     }
 
-    // --- GROUP UTILITIES LOGIC HOOKS ---
+    // --- UPGRADED CONTEXTUAL MEMBER ADDITION INTERFACE ROUTINE ---
     const addMemberActionBtn = document.getElementById("btn-add-member-action");
     if (addMemberActionBtn) {
         addMemberActionBtn.addEventListener("click", async () => {
@@ -133,16 +132,21 @@ function initDashboardPage() {
             const targetedUserName = selectMenu.options[selectMenu.selectedIndex].text;
 
             try {
+                // Provision permissions natively directly inside the user's room document state
+                await updateDoc(doc(db, "users", activeChatId), {
+                    allowedMembers: arrayUnion(targetedUserUid)
+                });
+
                 await addDoc(collection(db, "chats", activeChatId, "messages"), {
-                    text: `📢 System Upgrade Notice: ${targetedUserName} has been direct-provisioned into this channel feed line by workspace command.`,
+                    text: `📢 Google Assistant Alert: ${targetedUserName} has been granted verified clearance to participate inside this chatroom.`,
                     type: "text",
                     senderId: "SYSTEM_UPGRADE",
-                    senderName: "System Engine",
+                    senderName: "Google Assistant Hub",
                     createdAt: serverTimestamp()
                 });
-                alert(`Successfully added ${targetedUserName} to the room.`);
+                alert(`Clearance granted successfully! ${targetedUserName} is now a participant.`);
             } catch (err) {
-                alert("Failed to provision room access: " + err.message);
+                alert("Failed to append room permission structural state: " + err.message);
             }
         });
     }
@@ -154,18 +158,34 @@ function initDashboardPage() {
             const displayBox = document.getElementById("invite-link-display");
             if (!displayBox) return;
 
-            let inviteStringPayload = `https://mwamini-chat.web.app/join?id=${activeChatId}`;
+            let inviteStringPayload = `${window.location.origin}/dashboard.html?joinRoomId=${activeChatId}`;
             if (selectedChatObject.groupType === "protected") {
-                inviteStringPayload += `&passKey=${btoa(selectedChatObject.groupPassword)}`;
+                inviteStringPayload += `&token=${btoa(selectedChatObject.groupPassword)}`;
             }
 
             displayBox.innerText = inviteStringPayload;
             displayBox.classList.remove("hidden");
-            alert("Secure workspace sharing token generated below.");
+            alert("Invite link copied below. Users clicking this link automatically get added to the room list.");
         });
     }
 
-    // --- UNREAD MESSAGE TRAFFIC ALERT ENGINE ---
+    // --- AUTOMATIC INBOUND LINK DETECTOR PASSTHROUGH ENGINE ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const incomingRoomId = urlParams.get('joinRoomId');
+    if (incomingRoomId) {
+        setTimeout(async () => {
+            try {
+                await updateDoc(doc(db, "users", incomingRoomId), {
+                    allowedMembers: arrayUnion(currentUser.uid)
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+                alert("Successfully joined chatroom via secure link invitation!");
+                executeTargetSearchQuery("");
+            } catch(e) {}
+        }, 1500);
+    }
+
+    // --- UNREAD TRAFFIC ALERT PIPELINE ---
     onSnapshot(collection(db, "chats"), (snapshot) => {
         snapshot.forEach((chatDoc) => {
             const info = chatDoc.data();
@@ -183,7 +203,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- AUDIO MEMO RECORDERS ---
+    // --- VOICE MEMO CAPTURE MECHANIC ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -230,14 +250,12 @@ function initDashboardPage() {
         });
     }
 
-    // --- SEARCH BAR LOOKUP AND DIRECTORY FEED ACTION ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery(""); 
 
-    // --- MESSAGE FORM SUBMISSIONS ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -299,17 +317,14 @@ async function executeTargetSearchQuery(keyword) {
     }
 
     if (!keyword) {
-        // Query reads and aggregates ALL platforms objects (Groups + Users) smoothly side by side
         groupUnsubscribeInstance = onSnapshot(query(collection(db, "users")), (snapshot) => {
             listCanvas.innerHTML = ""; 
             if (snapshot.empty) return;
             
-            // Render groups permanently at the top of the feed stack
             snapshot.forEach((doc) => {
                 const item = doc.data();
                 if(item.isGroup) buildSidebarChannelRowElement(item);
             });
-            // Append standard online platform contacts directly below
             snapshot.forEach((doc) => {
                 const item = doc.data();
                 if(!item.isGroup && item.uid !== currentUser.uid) buildSidebarChannelRowElement(item);
@@ -370,15 +385,23 @@ function buildSidebarChannelRowElement(userData) {
 
     newRowElement.addEventListener("click", () => {
         if (isRoomChannel && userData.groupType === "protected") {
-            const clientAttemptToken = prompt(`Security Verification required.\nEnter entry password code to access the channel thread "${userData.name}":`);
-            if (clientAttemptToken !== userData.groupPassword) {
-                alert("Authorization Denied: Invalid security channel password key.");
-                return;
+            const membersList = userData.allowedMembers || [];
+            // If the current user isn't directly cleared inside the room array, trigger password gate check
+            if (!membersList.includes(currentUser.uid)) {
+                const clientAttemptToken = prompt(`Security Verification required.\nEnter password to access "${userData.name}":`);
+                if (clientAttemptToken !== userData.groupPassword) {
+                    alert("Authorization Denied: Invalid password key.");
+                    return;
+                }
+                // Save access natively to allow them instant entry on subsequent visits
+                updateDoc(doc(db, "users", userData.uid), {
+                    allowedMembers: arrayUnion(currentUser.uid)
+                }).catch(() => {});
             }
         }
 
         activeChatId = userData.uid;
-        selectedChatObject = userData; // Cache complete contextual properties
+        selectedChatObject = userData; 
         activeSessionStartTime = new Date();
 
         trackedUnreadNotificationSet.delete(activeChatId);
@@ -388,12 +411,12 @@ function buildSidebarChannelRowElement(userData) {
         document.getElementById("no-chat-selected").classList.add("hidden");
         document.getElementById("active-chat-area").classList.remove("hidden");
         
-        // POPULATE GROUP RELATED DATA EXACTLY ABOVE THE CHAT NAME DISPLAY
+        // POPULATE METADATA STRINGS DIRECTLY ABOVE CHATROOM NAME DISPLAY
         const metaField = document.getElementById("chat-header-group-meta");
         if(metaField) {
             metaField.innerText = isRoomChannel 
-              ? `ROOM PROFILE CONFIGURATION // TYPE: ${userData.groupType.toUpperCase()} CHANNEL ACCESS` 
-              : "DIRECT PRIVATE MESSAGING TIMELINE";
+              ? `ROOM METADATA INFO // ACCESS: ${userData.groupType.toUpperCase()} MODE` 
+              : "DIRECT PRIVATE CONVERSATION";
         }
 
         document.getElementById("chat-header-name").innerText = userData.name;
@@ -404,13 +427,12 @@ function buildSidebarChannelRowElement(userData) {
             presenceBadge.innerText = statusTextLabel;
         }
 
-        // TOGGLE COLLAPSIBLE RIGHT SIDEBAR BASED ON CHANNEL TYPE (Keeps standard 1-on-1 conversations clear)
         const utilitiesSidebar = document.getElementById("group-utilities-sidebar");
         if (utilitiesSidebar) {
             if (isRoomChannel) {
                 utilitiesSidebar.classList.remove("hidden");
                 const displayBox = document.getElementById("invite-link-display");
-                if (displayBox) displayBox.classList.add("hidden"); // reset sharing strings view
+                if (displayBox) displayBox.classList.add("hidden"); 
             } else {
                 utilitiesSidebar.classList.add("hidden");
             }
@@ -460,7 +482,7 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                     visualPayloadOutputBlock = `
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:25px; margin-bottom:3px;">
                             <span style="font-size:11px; font-weight:bold; color:#008069;">${data.senderName}</span>
-                            <span class="read-aloud-bot" style="cursor:pointer; font-size:11px; font-weight:600; color:#00a884; background:rgba(0,168,132,0.08); padding:1px 5px; border-radius:4px;" title="Speak Text">🔊 Speak</span>
+                            <span class="read-aloud-bot" style="cursor:pointer; font-size:11px; font-weight:600; color:#00a884; background:rgba(0,168,132,0.08); padding:1px 5px; border-radius:4px;" title="Ask Google Assistant to Read">✨ Google Assistant</span>
                         </div>
                         <p style="margin:0; font-size:14px; white-space:pre-wrap; line-height:1.5; color:#111b21;">${data.text}</p>
                     `;
@@ -472,6 +494,14 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                 if(cloudSpeakerBtn) {
                     cloudSpeakerBtn.addEventListener("click", () => {
                         const narrativeInstance = new SpeechSynthesisUtterance(data.text);
+                        
+                        // Select Google Voice synthesizers inside standard Web Speech controllers
+                        const platformAvailableVoices = window.speechSynthesis.getVoices();
+                        const googleVoiceAsset = platformAvailableVoices.find(v => v.name.includes("Google") || v.name.includes("Assistant"));
+                        if(googleVoiceAsset) {
+                            narrativeInstance.voice = googleVoiceAsset;
+                        }
+                        
                         narrativeInstance.lang = 'en-US';
                         window.speechSynthesis.speak(narrativeInstance);
                     });
