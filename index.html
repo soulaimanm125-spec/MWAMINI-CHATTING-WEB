@@ -4,23 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MWAMINI CHAT WEB</title>
-    <link rel="stylesheet" href="./style.css">
     <style>
-        .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f2f5; font-family: sans-serif; }
-        .auth-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
-        .input-group input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .auth-container { width: 100%; max-width: 400px; padding: 20px; }
+        .auth-card { background: #ffffff; padding: 40px 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; }
+        .input-group { margin-bottom: 14px; position: relative; }
+        .input-group input { width: 100%; padding: 12px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; transition: border 0.2s; }
+        .input-group input:focus { border-color: #008069; }
+        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 13px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .btn-primary:hover { background: #004d3e; }
+        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 11px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+        .btn-secondary-guest:hover { background: rgba(0, 92, 75, 0.05); }
         .hidden { display: none !important; }
+        #error-message { min-height: 20px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
     <div class="auth-container">
         <div class="auth-card">
-            <h2 id="auth-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 5px;">MWAMINI CHAT WEB</h2>
+            <h2 id="auth-title" style="text-align: center; color: #005c4b; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;">MWAMINI CHAT WEB</h2>
             
-            <p id="error-message" style="color: #ea0038; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; min-height: 18px;"></p>
+            <p id="error-message"></p>
 
             <div id="auth-form-fields">
                 <div class="input-group" id="name-group">
@@ -33,30 +39,30 @@
                     <input type="password" id="auth-password" placeholder="Password">
                 </div>
                 
-                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -6px; margin-bottom: 15px;">
+                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -6px; margin-bottom: 16px;">
                     <span id="auth-forgot-link" style="color: #667781; font-size: 13px; cursor: pointer; text-decoration: underline;">Forgot Password?</span>
                 </div>
 
                 <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
             </div>
 
-            <div id="verification-notice-screen" class="hidden" style="text-align: center;">
-                <div style="font-size: 48px; margin-bottom: 10px;">✉️</div>
-                <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
-                <p style="font-size: 13px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
-                    An activation verification connection link has been sent to your email. Check your inbox to complete sign-up.
+            <div id="verification-notice-screen" class="hidden" style="text-align: center; padding: 10px 0;">
+                <div style="font-size: 54px; margin-bottom: 12px;">✉️</div>
+                <h3 style="color: #005c4b; margin-bottom: 10px; font-weight: 700;">Verify Your Email</h3>
+                <p style="font-size: 13px; color: #667781; line-height: 1.6; margin-bottom: 24px;">
+                    An activation configuration verification link has been successfully dispatched to your email address. Check your inbox to continue.
                 </p>
                 <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
             </div>
 
-            <p id="toggle-container" style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
+            <p id="toggle-container" style="margin-top: 24px; text-align: center; font-size: 14px; color: #667781;">
                 <span id="auth-switch-text">Already have an account?</span> 
-                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Login here</span>
+                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 4px;">Login here</span>
             </p>
             
             <div id="or-separator" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
-                <span style="padding: 0 10px;">OR</span>
+                <span style="padding: 0 12px; font-weight: 500;">OR</span>
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
             </div>
             
@@ -65,7 +71,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, sendPasswordResetEmail, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -78,7 +84,7 @@
           appId: "1:640958885512:web:2f9a636acc85534009b93d"
         };
 
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
@@ -100,17 +106,18 @@
         if (switchLink) {
             switchLink.addEventListener("click", () => {
                 isLoginMode = !isLoginMode;
-                if(errorDisplay) errorDisplay.innerText = "";
+                if (errorDisplay) errorDisplay.innerText = "";
+                
                 if (isLoginMode) {
-                    if(submitBtn) submitBtn.innerText = "Login";
-                    if(switchLink) switchLink.innerText = "Register here";
-                    if(switchText) switchText.innerText = "Don't have an account?";
+                    if (submitBtn) submitBtn.innerText = "Login";
+                    if (switchLink) switchLink.innerText = "Register here";
+                    if (switchText) switchText.innerText = "Don't have an account?";
                     if (nameGroup) nameGroup.style.display = "none";
                     if (forgotPasswordContainer) forgotPasswordContainer.classList.remove("hidden");
                 } else {
-                    if(submitBtn) submitBtn.innerText = "Register";
-                    if(switchLink) switchLink.innerText = "Login here";
-                    if(switchText) switchText.innerText = "Already have an account?";
+                    if (submitBtn) submitBtn.innerText = "Register";
+                    if (switchLink) switchLink.innerText = "Login here";
+                    if (switchText) switchText.innerText = "Already have an account?";
                     if (nameGroup) nameGroup.style.display = "block";
                     if (forgotPasswordContainer) forgotPasswordContainer.classList.add("hidden");
                 }
@@ -118,4 +125,133 @@
         }
 
         if (forgotPasswordLink) {
-            forgotPasswordLink.addEventListener("click", async ()
+            forgotPasswordLink.addEventListener("click", async () => {
+                const emailVal = document.getElementById("auth-email").value.trim();
+                if (!emailVal) {
+                    errorDisplay.innerText = "Please type your email address to receive recovery links.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+                errorDisplay.innerText = "Transmitting password recovery connection links...";
+                errorDisplay.style.color = "#005c4b";
+                try {
+                    await sendPasswordResetEmail(auth, emailVal);
+                    errorDisplay.innerText = "Password recovery link dispatched. Check your inbox.";
+                    errorDisplay.style.color = "#00a884";
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (submitBtn) {
+            submitBtn.addEventListener("click", async () => {
+                const email = document.getElementById("auth-email").value.trim();
+                const password = document.getElementById("auth-password").value.trim();
+                const name = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
+
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Connecting to application gateways...";
+                    errorDisplay.style.color = "#005c4b";
+                }
+
+                if (!email || !password || (!isLoginMode && !name)) {
+                    errorDisplay.innerText = "Please complete all validation profile inputs.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+
+                try {
+                    if (isLoginMode) {
+                        const credential = await signInWithEmailAndPassword(auth, email, password);
+                        
+                        if (!credential.user.emailVerified) {
+                            errorDisplay.innerText = "Account verification email tracking confirmation required.";
+                            errorDisplay.style.color = "#ea0038";
+                            showVerificationInterface();
+                            return;
+                        }
+                        
+                        saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                    } else {
+                        const credential = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(credential.user);
+                        
+                        await setDoc(doc(db, "users", credential.user.uid), {
+                            uid: credential.user.uid,
+                            name: name,
+                            email: email,
+                            status: "Humbled to join Mwamini Chat.",
+                            accountMode: "standard",
+                            isOnline: false
+                        });
+
+                        errorDisplay.innerText = "Verification verification complete. Check email inbox.";
+                        errorDisplay.style.color = "#005c4b";
+                        showVerificationInterface();
+                    }
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (checkVerificationBtn) {
+            checkVerificationBtn.addEventListener("click", async () => {
+                if (auth.currentUser) {
+                    await reload(auth.currentUser);
+                    if (auth.currentUser.emailVerified) {
+                        saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
+                    } else {
+                        errorDisplay.innerText = "Verification status pending. Please verify via email verification link.";
+                        errorDisplay.style.color = "#ea0038";
+                    }
+                }
+            });
+        }
+
+        if (guestBtn) {
+            guestBtn.addEventListener("click", async () => {
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Configuring temporary workspace keys...";
+                    errorDisplay.style.color = "#005c4b";
+                }
+                try {
+                    const credential = await signInAnonymously(auth);
+                    const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
+                    
+                    await setDoc(doc(db, "users", credential.user.uid), {
+                        uid: credential.user.uid,
+                        name: guestUserTag,
+                        email: "guest@mwamini.local",
+                        status: "Exploring Mwamini space via temporary access.",
+                        accountMode: "standard",
+                        isOnline: true
+                    });
+                    saveSessionAndRedirect(credential.user.uid, guestUserTag);
+                } catch (err) {
+                    errorDisplay.innerText = "Guest entry restricted: " + err.message;
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        function showVerificationInterface() {
+            if (formFieldsWrapper) formFieldsWrapper.classList.add("hidden");
+            if (verificationScreen) verificationScreen.classList.remove("hidden");
+            if (document.getElementById("or-separator")) document.getElementById("or-separator").classList.add("hidden");
+            if (guestBtn) guestBtn.classList.add("hidden");
+            if (document.getElementById("toggle-container")) document.getElementById("toggle-container").classList.add("hidden");
+        }
+
+        function saveSessionAndRedirect(uid, displayName) {
+            localStorage.setItem("session_uid", uid);
+            localStorage.setItem("session_name", displayName);
+            localStorage.setItem("session_account_mode", "standard");
+            window.location.href = "dashboard.html";
+        }
+    </script>
+</body>
+</html>
