@@ -44,7 +44,7 @@
                 <div style="font-size: 48px; margin-bottom: 10px;">✉️</div>
                 <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
                 <p style="font-size: 13px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
-                    An activation confirmation email link has been sent to your inbox. Complete registration automatically by opening the link.
+                    An activation verification connection link has been sent to your email. Check your inbox to complete sign-up.
                 </p>
                 <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
             </div>
@@ -65,7 +65,7 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, sendPasswordResetEmail, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -78,7 +78,7 @@
           appId: "1:640958885512:web:2f9a636acc85534009b93d"
         };
 
-        const app = initializeApp(firebaseConfig);
+        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
         const auth = getAuth(app);
         const db = getFirestore(app);
 
@@ -100,74 +100,22 @@
         if (switchLink) {
             switchLink.addEventListener("click", () => {
                 isLoginMode = !isLoginMode;
-                errorDisplay.innerText = "";
+                if(errorDisplay) errorDisplay.innerText = "";
                 if (isLoginMode) {
-                    submitBtn.innerText = "Login";
-                    switchLink.innerText = "Register here";
-                    switchText.innerText = "Don't have an account?";
+                    if(submitBtn) submitBtn.innerText = "Login";
+                    if(switchLink) switchLink.innerText = "Register here";
+                    if(switchText) switchText.innerText = "Don't have an account?";
                     if (nameGroup) nameGroup.style.display = "none";
                     if (forgotPasswordContainer) forgotPasswordContainer.classList.remove("hidden");
                 } else {
-                    submitBtn.innerText = "Register";
-                    switchLink.innerText = "Login here";
-                    switchText.innerText = "Already have an account?";
+                    if(submitBtn) submitBtn.innerText = "Register";
+                    if(switchLink) switchLink.innerText = "Login here";
+                    if(switchText) switchText.innerText = "Already have an account?";
                     if (nameGroup) nameGroup.style.display = "block";
                     if (forgotPasswordContainer) forgotPasswordContainer.classList.add("hidden");
                 }
             });
         }
 
-        // --- UPGRADED: PASSWORD RESET LOGIC ---
         if (forgotPasswordLink) {
-            forgotPasswordLink.addEventListener("click", async () => {
-                const emailInput = document.getElementById("auth-email");
-                const email = emailInput ? emailInput.value.trim() : "";
-
-                if (!email) {
-                    errorDisplay.innerText = "Please input your email address first to request a reset link.";
-                    errorDisplay.style.color = "#ea0038";
-                    return;
-                }
-
-                errorDisplay.innerText = "Sending recovery link to your inbox...";
-                errorDisplay.style.color = "#005c4b";
-
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    errorDisplay.innerText = "A password recovery link has been safely transmitted to your email address.";
-                    errorDisplay.style.color = "#00a884";
-                } catch (err) {
-                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
-                    errorDisplay.style.color = "#ea0038";
-                }
-            });
-        }
-
-        if (submitBtn) {
-            submitBtn.addEventListener("click", async () => {
-                const email = document.getElementById("auth-email").value.trim();
-                const password = document.getElementById("auth-password").value.trim();
-                const name = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
-
-                errorDisplay.innerText = "Processing configuration setup...";
-                errorDisplay.style.color = "#005c4b";
-
-                if (!email || !password || (!isLoginMode && !name)) {
-                    errorDisplay.innerText = "Please complete all fields humbly.";
-                    errorDisplay.style.color = "#ea0038";
-                    return;
-                }
-
-                try {
-                    if (isLoginMode) {
-                        const credential = await signInWithEmailAndPassword(auth, email, password);
-                        
-                        if (!credential.user.emailVerified) {
-                            errorDisplay.innerText = "Please verify your email address to log in.";
-                            errorDisplay.style.color = "#ea0038";
-                            showVerificationInterface();
-                            return;
-                        }
-                        
-                        saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
-                    } else {
+            forgotPasswordLink.addEventListener("click", async ()
