@@ -21,6 +21,7 @@ const storage = getStorage(app);
 
 let currentUser = null; 
 let activeChatId = null;
+let selectedChatObject = null; // Caches complete model details
 let unsubscribeMessages = null;
 let activeSessionStartTime = null; 
 
@@ -30,7 +31,6 @@ const trackedUnreadNotificationSet = new Set();
 
 function initDashboardPage() {
     if (!document.getElementById("users-container") && !document.getElementById("message-form")) {
-        console.log("Welcome view active. Core engines operating cleanly.");
         return; 
     }
 
@@ -43,11 +43,8 @@ function initDashboardPage() {
     }
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
-    
-    // Safely verify and flag active user online state without affecting historical metrics
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
-    // Real-time observer for tracking account profile metrics
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
@@ -56,7 +53,10 @@ function initDashboardPage() {
         }
     });
 
-    // --- IMMUTABLE WALLPAPER INTERFACE CUSTOMIZATION ---
+    // --- SIDEBAR COMPONENT DISCOVERY POPULATION ---
+    populateUtilityUsersDropdown();
+
+    // --- CHAT WALLPAPER COLOR CONTROLLER ---
     const backgroundSelector = document.getElementById("background-changer");
     if (backgroundSelector) {
         backgroundSelector.addEventListener("change", (e) => {
@@ -69,7 +69,7 @@ function initDashboardPage() {
         });
     }
 
-    // --- INSTANT PERMANENT GROUP REGISTRATION SCHEDULER ---
+    // --- INSTANT GROUP CREATION LOGIC ---
     const groupSelectMenu = document.getElementById("group-type-select");
     const groupPasswordField = document.getElementById("group-password-input");
     const createGroupActionBtn = document.getElementById("create-group-btn");
@@ -122,6 +122,49 @@ function initDashboardPage() {
         });
     }
 
+    // --- GROUP UTILITIES LOGIC HOOKS ---
+    const addMemberActionBtn = document.getElementById("btn-add-member-action");
+    if (addMemberActionBtn) {
+        addMemberActionBtn.addEventListener("click", async () => {
+            const selectMenu = document.getElementById("utility-member-dropdown");
+            if (!selectMenu || !selectMenu.value || !activeChatId) return;
+            
+            const targetedUserUid = selectMenu.value;
+            const targetedUserName = selectMenu.options[selectMenu.selectedIndex].text;
+
+            try {
+                await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                    text: `📢 System Upgrade Notice: ${targetedUserName} has been direct-provisioned into this channel feed line by workspace command.`,
+                    type: "text",
+                    senderId: "SYSTEM_UPGRADE",
+                    senderName: "System Engine",
+                    createdAt: serverTimestamp()
+                });
+                alert(`Successfully added ${targetedUserName} to the room.`);
+            } catch (err) {
+                alert("Failed to provision room access: " + err.message);
+            }
+        });
+    }
+
+    const generateInviteBtn = document.getElementById("btn-generate-invite");
+    if (generateInviteBtn) {
+        generateInviteBtn.addEventListener("click", () => {
+            if (!activeChatId || !selectedChatObject) return;
+            const displayBox = document.getElementById("invite-link-display");
+            if (!displayBox) return;
+
+            let inviteStringPayload = `https://mwamini-chat.web.app/join?id=${activeChatId}`;
+            if (selectedChatObject.groupType === "protected") {
+                inviteStringPayload += `&passKey=${btoa(selectedChatObject.groupPassword)}`;
+            }
+
+            displayBox.innerText = inviteStringPayload;
+            displayBox.classList.remove("hidden");
+            alert("Secure workspace sharing token generated below.");
+        });
+    }
+
     // --- UNREAD MESSAGE TRAFFIC ALERT ENGINE ---
     onSnapshot(collection(db, "chats"), (snapshot) => {
         snapshot.forEach((chatDoc) => {
@@ -140,77 +183,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- STATUS STORIES TRAIT SYSTEM ---
-    const updateStatusBtn = document.getElementById("update-status-btn");
-    if (updateStatusBtn) {
-        updateStatusBtn.addEventListener("click", async () => {
-            const input = document.getElementById("status-input");
-            const mediaInput = document.getElementById("status-media-file");
-            const textPayload = input ? input.value.trim() : "";
-            const attachedFile = mediaInput ? mediaInput.files[0] : null;
-
-            if (!textPayload && !attachedFile) return;
-            let downloadedMediaUrl = "";
-            let computedMediaType = "text";
-
-            try {
-                if (attachedFile) {
-                    computedMediaType = attachedFile.type.startsWith("video/") ? "video" : "image";
-                    const storageLocationRef = ref(storage, `mwamini_statuses/${currentUser.uid}/${Date.now()}_${attachedFile.name}`);
-                    const snapshot = await uploadBytes(storageLocationRef, attachedFile);
-                    downloadedMediaUrl = await getDownloadURL(snapshot.ref);
-                }
-
-                await addDoc(collection(db, "statuses"), {
-                    uid: currentUser.uid,
-                    userName: currentUser.name,
-                    accountMode: "standard",
-                    textPayload: textPayload || `Posted an update status ${computedMediaType}`,
-                    mediaUrl: downloadedMediaUrl,
-                    statusType: computedMediaType,
-                    createdAt: serverTimestamp()
-                });
-
-                await updateDoc(doc(db, "users", currentUser.uid), { status: textPayload || "Active with a status update." });
-                if(input) input.value = "";
-                if(mediaInput) mediaInput.value = "";
-                alert("Status update posted successfully.");
-            } catch (err) {
-                alert("Status upload failed: " + err.message);
-            }
-        });
-    }
-
-    const retentionThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    onSnapshot(query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20)), (snapshot) => {
-        const feedContainerTray = document.getElementById("active-statuses-view");
-        if (!feedContainerTray) return;
-        feedContainerTray.innerHTML = "";
-
-        snapshot.forEach((statusDoc) => {
-            const data = statusDoc.data();
-            if (!data.createdAt) return;
-            if (data.createdAt.toDate() > retentionThreshold) {
-                const layoutBubble = document.createElement("div");
-                layoutBubble.style = "background: #e1f5fe; border: 1px solid #b3e5fc; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #01579b; cursor: pointer; display: flex; flex-direction: column; gap: 4px; white-space:nowrap;";
-                
-                let embeddedMediaOutputElement = "";
-                if (data.statusType === "image") {
-                    embeddedMediaOutputElement = `<img src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">`;
-                } else if (data.statusType === "video") {
-                    embeddedMediaOutputElement = `<video src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;" muted></video>`;
-                }
-
-                layoutBubble.innerHTML = `<strong>${data.userName}</strong><span>${data.textPayload}</span>${embeddedMediaOutputElement}`;
-                if (data.mediaUrl) {
-                    layoutBubble.addEventListener("click", () => window.open(data.mediaUrl, "_blank"));
-                }
-                feedContainerTray.appendChild(layoutBubble);
-            }
-        });
-    });
-
-    // --- NATIVE VOICE RECORDER PROCESSORS ---
+    // --- AUDIO MEMO RECORDERS ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -257,14 +230,14 @@ function initDashboardPage() {
         });
     }
 
-    // --- SIDEBAR LOOKUP CONFIGURATION ATTACHMENT ---
+    // --- SEARCH BAR LOOKUP AND DIRECTORY FEED ACTION ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery(""); 
 
-    // --- STANDARD INPUT FORM CONTROLLERS ---
+    // --- MESSAGE FORM SUBMISSIONS ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -295,6 +268,24 @@ function initDashboardPage() {
     }
 }
 
+async function populateUtilityUsersDropdown() {
+    const dropdownMenu = document.getElementById("utility-member-dropdown");
+    if (!dropdownMenu) return;
+    
+    onSnapshot(query(collection(db, "users")), (snapshot) => {
+        dropdownMenu.innerHTML = `<option value="">-- Choose Workspace Profile --</option>`;
+        snapshot.forEach((userDoc) => {
+            const info = userDoc.data();
+            if (!info.isGroup && info.uid !== currentUser.uid) {
+                const opt = document.createElement("option");
+                opt.value = info.uid;
+                opt.innerText = info.name;
+                dropdownMenu.appendChild(opt);
+            }
+        });
+    });
+}
+
 let groupUnsubscribeInstance = null;
 
 async function executeTargetSearchQuery(keyword) {
@@ -307,26 +298,27 @@ async function executeTargetSearchQuery(keyword) {
         groupUnsubscribeInstance = null;
     }
 
-    // REAL-TIME INSTANT SIDEBAR VISIBILITY STREAM FOR CREATED GROUPS:
     if (!keyword) {
-        const groupQuery = query(collection(db, "users"), where("isGroup", "==", true));
-        groupUnsubscribeInstance = onSnapshot(groupQuery, (snapshot) => {
+        // Query reads and aggregates ALL platforms objects (Groups + Users) smoothly side by side
+        groupUnsubscribeInstance = onSnapshot(query(collection(db, "users")), (snapshot) => {
             listCanvas.innerHTML = ""; 
-            if (snapshot.empty) {
-                listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:20px; margin:0;">No active group rooms exist. Build a room above to launch a global channel thread.</p>`;
-                return;
-            }
-            snapshot.forEach((doc) => buildSidebarChannelRowElement(doc.data()));
+            if (snapshot.empty) return;
+            
+            // Render groups permanently at the top of the feed stack
+            snapshot.forEach((doc) => {
+                const item = doc.data();
+                if(item.isGroup) buildSidebarChannelRowElement(item);
+            });
+            // Append standard online platform contacts directly below
+            snapshot.forEach((doc) => {
+                const item = doc.data();
+                if(!item.isGroup && item.uid !== currentUser.uid) buildSidebarChannelRowElement(item);
+            });
         });
         return;
     }
 
     const standardKeywordSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
-    if (standardKeywordSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:20px; margin:0;">No registered users or groups found matching that name sequence.</p>`;
-        return;
-    }
-
     standardKeywordSnap.forEach((userDoc) => {
         const data = userDoc.data();
         if (data.uid !== currentUser.uid) {
@@ -337,7 +329,6 @@ async function executeTargetSearchQuery(keyword) {
 
 function buildSidebarChannelRowElement(userData) {
     const canvas = document.getElementById("users-container");
-    
     let rowElement = document.getElementById(`sidebar-row-${userData.uid}`);
     if (!rowElement) {
         rowElement = document.createElement("div");
@@ -350,7 +341,6 @@ function buildSidebarChannelRowElement(userData) {
     rowElement.onmouseleave = () => rowElement.style.backgroundColor = "transparent";
 
     const isRoomChannel = userData.isGroup === true;
-    
     let badgeClass = userData.isOnline ? "status-online" : "status-offline";
     let statusTextLabel = userData.isOnline ? "online" : "offline";
 
@@ -365,11 +355,11 @@ function buildSidebarChannelRowElement(userData) {
                 ${isRoomChannel ? '👥' : userData.name.charAt(0).toUpperCase()}
             </div>
             <div style="flex:1; min-width:0;">
-                <h4 style="margin:0; font-size:14.5px; color:#111b21; font-weight:600; display:flex; align-items:center;">
-                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;">${userData.name}</span>
+                <h4 style="margin:0; font-size:14px; color:#111b21; font-weight:600; display:flex; align-items:center;">
+                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;">${userData.name}</span>
                     <span class="status-badge ${badgeClass}">${statusTextLabel}</span>
                 </h4>
-                <p style="margin:2px 0 0 0; font-size:12.5px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${userData.status || 'Available'}</p>
+                <p style="margin:2px 0 0 0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${userData.status || 'Available'}</p>
             </div>
         </div>
         <div id="badge-holder-${userData.uid}" style="flex-shrink:0; padding-left:10px;"></div>
@@ -388,6 +378,7 @@ function buildSidebarChannelRowElement(userData) {
         }
 
         activeChatId = userData.uid;
+        selectedChatObject = userData; // Cache complete contextual properties
         activeSessionStartTime = new Date();
 
         trackedUnreadNotificationSet.delete(activeChatId);
@@ -396,12 +387,33 @@ function buildSidebarChannelRowElement(userData) {
 
         document.getElementById("no-chat-selected").classList.add("hidden");
         document.getElementById("active-chat-area").classList.remove("hidden");
+        
+        // POPULATE GROUP RELATED DATA EXACTLY ABOVE THE CHAT NAME DISPLAY
+        const metaField = document.getElementById("chat-header-group-meta");
+        if(metaField) {
+            metaField.innerText = isRoomChannel 
+              ? `ROOM PROFILE CONFIGURATION // TYPE: ${userData.groupType.toUpperCase()} CHANNEL ACCESS` 
+              : "DIRECT PRIVATE MESSAGING TIMELINE";
+        }
+
         document.getElementById("chat-header-name").innerText = userData.name;
 
         const presenceBadge = document.getElementById("chat-header-presence-badge");
         if(presenceBadge) {
             presenceBadge.className = `status-badge ${badgeClass}`;
             presenceBadge.innerText = statusTextLabel;
+        }
+
+        // TOGGLE COLLAPSIBLE RIGHT SIDEBAR BASED ON CHANNEL TYPE (Keeps standard 1-on-1 conversations clear)
+        const utilitiesSidebar = document.getElementById("group-utilities-sidebar");
+        if (utilitiesSidebar) {
+            if (isRoomChannel) {
+                utilitiesSidebar.classList.remove("hidden");
+                const displayBox = document.getElementById("invite-link-display");
+                if (displayBox) displayBox.classList.add("hidden"); // reset sharing strings view
+            } else {
+                utilitiesSidebar.classList.add("hidden");
+            }
         }
 
         setDoc(doc(db, "chats", activeChatId), {
@@ -448,7 +460,7 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                     visualPayloadOutputBlock = `
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:25px; margin-bottom:3px;">
                             <span style="font-size:11px; font-weight:bold; color:#008069;">${data.senderName}</span>
-                            <span class="read-aloud-bot" style="cursor:pointer; font-size:11px; font-weight:600; color:#00a884; background:rgba(0,168,132,0.08); padding:1px 5px; border-radius:4px;" title="Listen with Google Assistant">🔊 Speak</span>
+                            <span class="read-aloud-bot" style="cursor:pointer; font-size:11px; font-weight:600; color:#00a884; background:rgba(0,168,132,0.08); padding:1px 5px; border-radius:4px;" title="Speak Text">🔊 Speak</span>
                         </div>
                         <p style="margin:0; font-size:14px; white-space:pre-wrap; line-height:1.5; color:#111b21;">${data.text}</p>
                     `;
