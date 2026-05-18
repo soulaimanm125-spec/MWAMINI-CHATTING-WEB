@@ -18,7 +18,6 @@
         .btn-secondary-guest:hover { background: rgba(0, 92, 75, 0.04); }
         .hidden { display: none !important; }
         #error-message { min-height: 22px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; line-height: 1.4; color: #ea0038; }
-        
         .support-footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #e9edef; text-align: center; font-size: 13px; color: #667781; }
         .support-link { color: #005c4b; font-weight: bold; text-decoration: none; margin-left: 3px; cursor: pointer; }
         .support-link:hover { text-decoration: underline; }
@@ -54,7 +53,7 @@
                 <div style="font-size: 50px; margin-bottom: 10px;">✉️</div>
                 <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
                 <p style="font-size: 14px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
-                    A verification activation link has been dispatched to your email address. Open it to unlock your chat access profile.
+                    A verification link has been sent to your email. Open it to unlock your profile access.
                 </p>
                 <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
             </div>
@@ -117,24 +116,149 @@
                 if (errorDisplay) errorDisplay.innerText = "";
                 
                 if (isLoginMode) {
-                    if (submitBtn) submitBtn.innerText = "Login";
-                    if (switchLink) switchLink.innerText = "Register here";
-                    if (switchText) switchText.innerText = "Don't have an account?";
-                    if (nameGroup) nameGroup.style.display = "none";
-                    if (forgotPasswordContainer) forgotPasswordContainer.classList.remove("hidden");
+                    submitBtn.innerText = "Login";
+                    switchLink.innerText = "Register here";
+                    switchText.innerText = "Don't have an account?";
+                    nameGroup.style.display = "none";
+                    forgotPasswordContainer.classList.remove("hidden");
                 } else {
-                    if (submitBtn) submitBtn.innerText = "Register";
-                    if (switchLink) switchLink.innerText = "Login here";
-                    if (switchText) switchText.innerText = "Already have an account?";
-                    if (nameGroup) nameGroup.style.display = "block";
-                    if (forgotPasswordContainer) forgotPasswordContainer.classList.add("hidden");
+                    submitBtn.innerText = "Register";
+                    switchLink.innerText = "Login here";
+                    switchText.innerText = "Already have an account?";
+                    nameGroup.style.display = "block";
+                    forgotPasswordContainer.classList.add("hidden");
                 }
             });
         }
 
-        // --- PASSWORD RESET SYSTEM ---
         if (forgotPasswordLink) {
             forgotPasswordLink.addEventListener("click", async () => {
                 const emailVal = document.getElementById("auth-email").value.trim();
                 if (!emailVal) {
                     errorDisplay.innerText = "Please type your email address above to receive a reset link.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+                errorDisplay.innerText = "Transmitting reset instructions safely...";
+                errorDisplay.style.color = "#005c4b";
+                try {
+                    await sendPasswordResetEmail(auth, emailVal);
+                    errorDisplay.innerText = "A password reset link has been dispatched to your inbox.";
+                    errorDisplay.style.color = "#00a884";
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (submitBtn) {
+            submitBtn.addEventListener("click", async () => {
+                const email = document.getElementById("auth-email").value.trim();
+                const password = document.getElementById("auth-password").value.trim();
+                const name = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
+
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Connecting to authorization pool...";
+                    errorDisplay.style.color = "#005c4b";
+                }
+
+                if (!email || !password || (!isLoginMode && !name)) {
+                    errorDisplay.innerText = "Please fill out all visible fields carefully.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+
+                try {
+                    if (isLoginMode) {
+                        const credential = await signInWithEmailAndPassword(auth, email, password);
+                        
+                        if (!credential.user.emailVerified) {
+                            errorDisplay.innerText = "Please complete your email verification step to connect.";
+                            errorDisplay.style.color = "#ea0038";
+                            showVerificationInterface();
+                            return;
+                        }
+                        
+                        saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                    } else {
+                        const credential = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(credential.user);
+                        
+                        await setDoc(doc(db, "users", credential.user.uid), {
+                            uid: credential.user.uid,
+                            name: name,
+                            email: email,
+                            status: "Available",
+                            accountMode: "standard",
+                            isOnline: false
+                        });
+
+                        errorDisplay.innerText = "Verification link sent! Please check your email.";
+                        errorDisplay.style.color = "#005c4b";
+                        showVerificationInterface();
+                    }
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (checkVerificationBtn) {
+            checkVerificationBtn.addEventListener("click", async () => {
+                if (auth.currentUser) {
+                    await reload(auth.currentUser);
+                    if (auth.currentUser.emailVerified) {
+                        saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
+                    } else {
+                        errorDisplay.innerText = "Verification unchecked. Please open the link inside your email inbox.";
+                        errorDisplay.style.color = "#ea0038";
+                    }
+                }
+            });
+        }
+
+        if (guestBtn) {
+            guestBtn.addEventListener("click", async () => {
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Allocating secure guest identity...";
+                    errorDisplay.style.color = "#005c4b";
+                }
+                try {
+                    const credential = await signInAnonymously(auth);
+                    const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
+                    
+                    await setDoc(doc(db, "users", credential.user.uid), {
+                        uid: credential.user.uid,
+                        name: guestUserTag,
+                        email: "guest@mwamini.local",
+                        status: "Exploring under temporary guest mode.",
+                        accountMode: "standard",
+                        isOnline: true
+                    });
+                    saveSessionAndRedirect(credential.user.uid, guestUserTag);
+                } catch (err) {
+                    errorDisplay.innerText = "Guest allocation restricted: " + err.message;
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        function showVerificationInterface() {
+            formFieldsWrapper.classList.add("hidden");
+            verificationScreen.classList.remove("hidden");
+            document.getElementById("or-separator").classList.add("hidden");
+            guestBtn.classList.add("hidden");
+            document.getElementById("toggle-container").classList.add("hidden");
+        }
+
+        function saveSessionAndRedirect(uid, displayName) {
+            localStorage.setItem("session_uid", uid);
+            localStorage.setItem("session_name", displayName);
+            localStorage.setItem("session_account_mode", "standard");
+            window.location.href = "dashboard.html";
+        }
+    </script>
+</body>
+</html>
