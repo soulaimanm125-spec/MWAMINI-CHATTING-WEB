@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, query, onSnapshot, doc, getDoc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -24,7 +24,7 @@ let activeChatId = null;
 let isGroupChat = false;
 let unsubscribeMessages = null;
 
-// Audio notes parameters
+// Voice recording references
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -42,15 +42,16 @@ export function initDashboardPage() {
     currentUser = { uid: savedUid, name: savedName, accountMode: savedMode };
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true });
 
-    // Background selection setup
-    document.getElementById("message-stream").style.backgroundColor = localStorage.getItem("chat_bg_color") || "#efeae2";
+    // Background color setup
+    const savedBg = localStorage.getItem("chat_bg_color") || "#efeae2";
+    document.getElementById("message-stream").style.backgroundColor = savedBg;
 
-    // Profile listener to monitor custom avatar modifications
+    // Realtime context profiling monitor
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             document.getElementById("current-user-title").innerText = data.name;
-            document.getElementById("my-status-display").innerText = data.status || "Available";
+            document.getElementById("my-status-display").innerText = data.status || "";
             const avatarEl = document.getElementById("my-global-avatar-preview");
             if (avatarEl) {
                 if (data.avatarUrl) {
@@ -62,7 +63,7 @@ export function initDashboardPage() {
         }
     });
 
-    // Profile Picture Modification Handler
+    // Profile photo upload click triggers
     document.getElementById("my-profile-pic-container").addEventListener("click", () => {
         document.getElementById("avatar-image-upload").click();
     });
@@ -70,18 +71,14 @@ export function initDashboardPage() {
     document.getElementById("avatar-image-upload").addEventListener("change", async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        try {
-            const pathRef = ref(storage, `avatars/${currentUser.uid}`);
-            const snap = await uploadBytes(pathRef, file);
-            const url = await getDownloadURL(snap.ref);
-            await updateDoc(doc(db, "users", currentUser.uid), { avatarUrl: url });
-            alert("Profile image updated successfully!");
-        } catch (err) {
-            alert("Error updating photo: " + err.message);
-        }
+        const pathRef = ref(storage, `avatars/${currentUser.uid}`);
+        const snap = await uploadBytes(pathRef, file);
+        const url = await getDownloadURL(snap.ref);
+        await updateDoc(doc(db, "users", currentUser.uid), { avatarUrl: url });
+        alert("Avatar image modified!");
     });
 
-    // Text status update button action
+    // Status management listener
     document.getElementById("update-status-btn").addEventListener("click", async () => {
         const input = document.getElementById("status-input");
         if (!input.value.trim()) return;
@@ -89,115 +86,13 @@ export function initDashboardPage() {
         input.value = "";
     });
 
-    // --- PHOTO AND VIDEO STATUS UPDATES PIPELINE ---
-    const statusMediaUpload = document.getElementById("status-media-upload");
-    statusMediaUpload.addEventListener("change", async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        alert("Uploading your temporary status media item...");
-        try {
-            const fileRef = ref(storage, `statuses/${currentUser.uid}/${Date.now()}_${file.name}`);
-            const snap = await uploadBytes(fileRef, file);
-            const downloadUrl = await getDownloadURL(snap.ref);
-
-            let mediaType = "photo";
-            if (file.type.startsWith("video/")) mediaType = "video";
-
-            await addDoc(collection(db, "statuses"), {
-                uid: currentUser.uid,
-                userName: currentUser.name,
-                accountMode: currentUser.accountMode,
-                mediaUrl: downloadUrl,
-                type: mediaType,
-                createdAt: serverTimestamp()
-            });
-            alert("Your new media status update is live!");
-        } catch (err) {
-            alert("Status upload failed: " + err.message);
-        } finally {
-            statusMediaUpload.value = "";
-        }
+    // Dynamic color modifications
+    document.getElementById("bg-color-picker").addEventListener("input", (e) => {
+        document.getElementById("message-stream").style.backgroundColor = e.target.value;
+        localStorage.setItem("chat_bg_color", e.target.value);
     });
 
-    // Stream status display tray items
-    const sQuery = query(collection(db, "statuses"), where("accountMode", "==", currentUser.accountMode), orderBy("createdAt", "desc"), limit(15));
-    onSnapshot(sQuery, (snapshot) => {
-        const container = document.getElementById("active-statuses-view");
-        container.innerHTML = "";
-        snapshot.forEach((sDoc) => {
-            const data = sDoc.data();
-            const indicator = document.createElement("div");
-            indicator.style = "background: #00a884; color: white; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0;";
-            indicator.innerText = `${data.userName} (${data.type === 'video' ? '🎥 Video' : '🖼️ Photo'})`;
-            indicator.onclick = () => {
-                if (data.type === "video") {
-                    alert(`Viewing video status by ${data.userName}. Opening video stream window.`);
-                    window.open(data.mediaUrl);
-                } else {
-                    alert(`Viewing image status update by ${data.userName}. Opening preview.`);
-                    window.open(data.mediaUrl);
-                }
-            };
-            container.appendChild(indicator);
-        });
-    });
-
-    // --- INTEGRATED DIRECT GOOGLE SEARCH PANEL ENGINE ---
-    const googleSidebar = document.getElementById("google-assistant-sidebar");
-    document.getElementById("toggle-google-panel-btn").addEventListener("click", () => {
-        googleSidebar.classList.toggle("hidden");
-    });
-    document.getElementById("close-google-panel-btn").addEventListener("click", () => {
-        googleSidebar.classList.add("hidden");
-    });
-
-    document.getElementById("exec-google-search-btn").addEventListener("click", performAssistantSearch);
-    document.getElementById("google-search-input").addEventListener("keypress", (e) => {
-        if (e.key === "Enter") performAssistantSearch();
-    });
-
-    function performAssistantSearch() {
-        const queryTerm = document.getElementById("google-search-input").value.trim();
-        if (!queryTerm) return;
-        
-        const container = document.getElementById("google-results-container");
-        container.innerHTML = `<p style="color: #4285f4; font-weight: bold;">Searching across knowledge streams...</p>`;
-
-        // Simulated intelligent parsing engine answering requests safely in real-time
-        setTimeout(() => {
-            container.innerHTML = `
-                <div style="background: #ffffff; padding: 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 10px;">
-                    <h4 style="color: #1a0dab; margin-bottom: 4px;"><a href="https://www.google.com/search?q=${encodeURIComponent(queryTerm)}" target="_blank" style="text-decoration: none; color: inherit;">${queryTerm} - Google Search Result</a></h4>
-                    <p style="color: #4d5156; font-size: 12px;">Here is what we fetched regarding "${queryTerm}": Open the direct web application engine to find answers or reference resources efficiently.</p>
-                </div>
-                <p style="font-size:11px; color:#667781;">Click link above to navigate full external search results canvas.</p>
-            `;
-        }, 800);
-    }
-
-    // --- VOICE AND VIDEO CALL SIMULATION SYSTEMS ---
-    const callOverlay = document.getElementById("active-call-overlay");
-    const callTitle = document.getElementById("call-screen-title");
-    const callType = document.getElementById("call-screen-type");
-    const videoStreams = document.getElementById("video-streams-container");
-
-    document.getElementById("audio-call-btn").addEventListener("click", () => startCallSession(false));
-    document.getElementById("video-call-btn").addEventListener("click", () => startCallSession(true));
-    document.getElementById("hangup-call-btn").addEventListener("click", () => {
-        callOverlay.classList.add("hidden");
-        videoStreams.classList.add("hidden");
-    });
-
-    function startCallSession(isVid) {
-        const title = document.getElementById("chat-header-name").innerText;
-        callTitle.innerText = `Connecting session with ${title}...`;
-        callType.innerText = isVid ? "SECURE VIDEO CHANNEL" : "SECURE AUDIO CHANNEL";
-        if (isVid) videoStreams.classList.remove("hidden");
-        callOverlay.classList.remove("hidden");
-    }
-
-    // --- RESTRUCTURED FILE ATTACHMENTS PIPELINE ---
+    // --- CRITICAL ATTACHMENT PIPELINE REPAIR ---
     const fileInputElement = document.getElementById("file-input");
     fileInputElement.addEventListener("change", async (e) => {
         const file = e.target.files[0];
@@ -230,10 +125,10 @@ export function initDashboardPage() {
                 createdAt: serverTimestamp()
             });
         } catch (err) {
-            alert("Upload error: " + err.message);
+            alert("Upload rejected: " + err.message);
         } finally {
             headerTitle.innerText = fallbackTitle;
-            fileInputElement.value = ""; 
+            fileInputElement.value = ""; // Clear file selector buffer
         }
     });
 
@@ -242,11 +137,12 @@ export function initDashboardPage() {
     const recordingStatus = document.getElementById("voice-recording-status");
 
     recordBtn.addEventListener("click", async () => {
-        if (!activeChatId) return alert("Select an active private session conversation channel.");
+        if (!activeChatId) return alert("Select a secure chat room session first.");
 
         if (!isRecording) {
+            // Start voice note tracking
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                return alert("Microphone system device permissions missing.");
+                return alert("Your device browser lacks active microphone media permissions.");
             }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -262,6 +158,7 @@ export function initDashboardPage() {
                     recordingStatus.classList.add("hidden");
                     recordBtn.innerText = "🎤";
 
+                    // Upload voice stream file to storage
                     const voiceRef = ref(storage, `voice_notes/${activeChatId}/${Date.now()}.webm`);
                     const snap = await uploadBytes(voiceRef, audioBlob);
                     const downloadUrl = await getDownloadURL(snap.ref);
@@ -288,12 +185,13 @@ export function initDashboardPage() {
                 alert("Microphone connection failed: " + err.message);
             }
         } else {
+            // Stop dynamic voice session tracking
             mediaRecorder.stop();
             isRecording = false;
         }
     });
 
-    // Create Group channel tool
+    // --- MULTIUSER GROUP MANAGEMENT INITIALIZER ---
     document.getElementById("create-group-btn").addEventListener("click", async () => {
         const groupTitle = prompt("Provide a unique title name for the new Chat Group:");
         if (!groupTitle || !groupTitle.trim()) return;
@@ -302,19 +200,21 @@ export function initDashboardPage() {
         const searchArray = targetUserQuery ? targetUserQuery.split(",").map(n => n.trim().toUpperCase()) : [];
 
         const groupUid = "group_" + Date.now();
-        await setDoc(doc(db, "groups", groupUid), {
+        const groupPayload = {
             groupId: groupUid,
             name: groupTitle.trim() + " (Group Room)",
             accountMode: currentUser.accountMode,
             members: [currentUser.name.toUpperCase(), ...searchArray],
             isGroup: true,
             createdAt: serverTimestamp()
-        });
-        alert(`Group room "${groupTitle}" deployed successfully!`);
+        };
+
+        await setDoc(doc(db, "groups", groupUid), groupPayload);
+        alert(`Group room "${groupTitle}" deployed successfully! Use search keywords to load.`);
         loadSidebarRooms("");
     });
 
-    // Chat Message Submission handle
+    // Realtime Message Submission handle 
     document.getElementById("message-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("message-input");
@@ -336,11 +236,13 @@ export function initDashboardPage() {
         });
     });
 
-    // Interactive search query dispatcher
+    // --- USERNAME SECURITY LOOKUP DISPATCHER ---
     document.getElementById("search-users").addEventListener("input", (e) => {
-        loadSidebarRooms(e.target.value.trim());
+        const querySearchKeyword = e.target.value.trim();
+        loadSidebarRooms(querySearchKeyword);
     });
 
+    // Perform default load initialization safely
     loadSidebarRooms("");
 
     document.getElementById("logout-btn").addEventListener("click", async () => {
@@ -351,7 +253,7 @@ export function initDashboardPage() {
 }
 
 // ========================================================
-// SECURITY SEARCH LOOKUP & SIDEBAR POPULATION ENGINE
+// SECURITY LOOKUP & FILTER ENGINE
 // ========================================================
 function loadSidebarRooms(searchKeyword) {
     const container = document.getElementById("users-container");
@@ -360,12 +262,13 @@ function loadSidebarRooms(searchKeyword) {
 
     const cleanKeyword = searchKeyword.trim().toUpperCase();
 
-    // PRIVACY DISCOVERY LOCKRULE: Users do not auto-populate unless search field contains characters matching the exact field query parameters.
+    // 1. ISOLATED USER DISCOVERY RULE: If input search field is blank, users do not auto-populate (Privacy Locked)
     if (cleanKeyword.length > 0) {
         const uQuery = query(collection(db, "users"), where("accountMode", "==", currentUser.accountMode));
         getDocs(uQuery).then((snapshot) => {
             snapshot.forEach((userDoc) => {
                 const userData = userDoc.data();
+                // Match search input keyword directly to the unique username profile field
                 if (userData.uid !== currentUser.uid && userData.name.toUpperCase().includes(cleanKeyword)) {
                     renderRoomRow(userData, false);
                 }
@@ -373,11 +276,12 @@ function loadSidebarRooms(searchKeyword) {
         });
     }
 
-    // Load available community Group spaces dynamically based on configuration filters
+    // 2. GROUP ROOM FEED DISCOVERY PIPELINE
     const gQuery = query(collection(db, "groups"), where("accountMode", "==", currentUser.accountMode));
     getDocs(gQuery).then((snapshot) => {
         snapshot.forEach((gDoc) => {
             const gData = gDoc.data();
+            // Validate that the active user belongs inside the custom user member list array parameters
             if (gData.members.includes(currentUser.name.toUpperCase())) {
                 if (cleanKeyword === "" || gData.name.toUpperCase().includes(cleanKeyword)) {
                     renderRoomRow(gData, true);
@@ -394,7 +298,7 @@ function renderRoomRow(roomData, isGroupObj) {
 
     const isOnline = !isGroupObj && roomData.isOnline;
     const badgeClass = isOnline ? "badge-online" : "badge-offline";
-    const statusText = isGroupObj ? "Active Group Room" : (isOnline ? "● Online" : "Offline");
+    const statusText = isGroupObj ? "Active Group Channel" : (isOnline ? "● Online" : "Offline");
 
     const avatarHTML = isGroupObj ? "👥" : (roomData.avatarUrl 
         ? `<img src="${roomData.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
@@ -410,7 +314,7 @@ function renderRoomRow(roomData, isGroupObj) {
                 <h4>${roomData.name}</h4>
                 <span class="presence-status-text ${badgeClass}">${statusText}</span>
             </div>
-            <p class="wa-user-status-text">${isGroupObj ? 'Tap to join text feed' : '💬 ' + (roomData.status || 'Available')}</p>
+            <p class="wa-user-status-text">${isGroupObj ? 'Tap to enter conversation' : '💬 ' + (roomData.status || 'Available')}</p>
         </div>
     `;
 
