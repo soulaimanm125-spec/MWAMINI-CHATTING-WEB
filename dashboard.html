@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MWAMINI CHAT WEB - Dashboard</title>
     <link rel="stylesheet" href="./style.css">
+    <style>.hidden { display: none !important; }</style>
 </head>
 <body>
     <div class="app-window">
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="user-profile">
-                    <div id="my-profile-pic-container" style="cursor: pointer;" title="Modify Avatar Photo">
-                        <div class="wa-avatar" id="my-global-avatar-preview">M</div>
-                    </div>
                     <div>
                         <h3 id="current-user-title">MWAMINI</h3>
                         <p id="my-status-display" style="font-size: 11px; color: #667781; font-style: italic;">Online</p>
@@ -44,7 +42,7 @@
 
         <main class="chat-panel">
             <div id="no-chat-selected" class="welcome-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 30px; background: #f8f9fa;">
-                <div class="welcome-banner" style="font-size: 64px; margin-bottom: 15px; animation: pulse 2s infinite;">✨</div>
+                <div style="font-size: 64px; margin-bottom: 15px;">✨</div>
                 <h2 style="color: #005c4b; font-size: 28px; font-weight: 700; margin-bottom: 8px;">Welcome to Mwamini Chat Web</h2>
                 <p style="color: #667781; font-size: 15px; max-width: 440px; line-height: 1.6; margin: 0 auto;">
                     We are truly humbled to have you here. Connect instantly across our secure private workspace network. Select a connection thread from the search panel to begin your conversation.
@@ -55,38 +53,30 @@
                 <header class="chat-header" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #f0f2f5;">
                     <div>
                         <h3 id="chat-header-name" style="margin: 0; color: #111b21;">Target Session</h3>
-                        <span class="online-status" id="chat-header-status-text" style="font-size: 12px; color: #667781;">secure connection online</span>
+                        <span id="chat-header-status-text" style="font-size: 12px; color: #667781;">secure connection online</span>
                     </div>
                     
-                    <div class="communication-action-suite" style="display: flex; gap: 18px; font-size: 20px; align-items: center; padding-right: 10px;">
-                        <span id="trigger-voice-call" style="cursor: pointer;" title="Initiate Secure Voice Call">📞</span>
-                        <span id="trigger-video-call" style="cursor: pointer;" title="Initiate High-Definition Video Call">📹</span>
+                    <div style="display: flex; gap: 18px; font-size: 20px; align-items: center; padding-right: 10px;">
+                        <span id="trigger-voice-call" style="cursor: pointer;" title="Voice Call">📞</span>
+                        <span id="trigger-video-call" style="cursor: pointer;" title="Video Call">📹</span>
                     </div>
                 </header>
                 
-                <div class="message-stream" id="message-stream"></div>
+                <div class="message-stream" id="message-stream" style="flex:1; overflow-y:auto; padding:20px;"></div>
                 
-                <footer class="chat-input-bar">
-                    <input type="file" id="file-input" style="display: none;">
-                    <label for="file-input" class="file-attach-btn" title="Send Media Document" style="cursor: pointer; font-size: 22px;">📎</label>
+                <footer class="chat-input-bar" style="padding: 10px; background: #f0f2f5; display: flex; align-items: center; gap: 10px;">
+                    <button type="button" id="voice-record-btn" title="Record Voice Chat" style="background: transparent; border: none; font-size: 20px; cursor: pointer;">🎤</button>
+                    <span id="voice-recording-status" class="hidden" style="color: #ea0038; font-size: 11px; font-weight: bold;">● RECORDING</span>
 
-                    <button type="button" id="voice-record-btn" title="Record Voice Chat Memo" style="background: transparent; border: none; font-size: 20px; cursor: pointer; padding: 0 5px;">🎤</button>
-                    <span id="voice-recording-status" class="hidden" style="color: #ea0038; font-size: 11px; font-weight: bold; margin-right: 5px;">● RECORDING</span>
-
-                    <form id="message-form" style="display: flex; flex: 1; gap: 10px; align-items: center;">
-                        <input type="text" id="message-input" placeholder="Write a secure message..." autocomplete="off">
-                        <button type="submit" class="btn-send">Send</button>
+                    <form id="message-form" style="display: flex; flex: 1; gap: 10px; align-items: center; margin: 0;">
+                        <input type="text" id="message-input" placeholder="Write a secure message..." autocomplete="off" style="flex:1; padding:10px; border-radius:4px; border:1px solid #ccc;">
+                        <button type="submit" class="btn-send" style="padding:10px 15px; background:#005c4b; color:white; border:none; border-radius:4px; cursor:pointer;">Send</button>
                     </form>
                 </footer>
             </div>
         </main>
     </div>
 
-    <script type="module">
-        import { initDashboardPage } from "./app.js";
-        document.addEventListener("DOMContentLoaded", () => {
-            initDashboardPage();
-        });
-    </script>
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
