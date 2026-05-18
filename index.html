@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="wey5UiXw6WMhkz6T7LKfWkG9cxuMdXKHVMFhCGWX960" /> 
+    
     <title>MWAMINI CHAT WEB</title>
     <link rel="stylesheet" href="./style.css">
     <style>
@@ -124,7 +126,6 @@
                 if (isLoginMode) {
                     const credential = await signInWithEmailAndPassword(auth, email, password);
                     
-                    // Enforce verification constraint for registered production lines
                     if (!credential.user.emailVerified) {
                         errorDisplay.innerText = "This profile's verification link is unconfirmed.";
                         errorDisplay.style.color = "#ea0038";
@@ -140,71 +141,7 @@
                 } else {
                     const credential = await createUserWithEmailAndPassword(auth, email, password);
                     
-                    // Dispatch automatic verification confirmation link
                     await sendEmailVerification(credential.user);
                     
                     await setDoc(doc(db, "users", credential.user.uid), {
-                        uid: credential.user.uid,
-                        name: name,
-                        email: email,
-                        status: "Hey there! I am using Mwamini Chat.",
-                        accountMode: "standard",
-                        isOnline: false
-                    });
-
-                    // Update UI layout dynamically without destroying underlying assets
-                    errorDisplay.innerText = "Verification dispatch successfully transmitted.";
-                    errorDisplay.style.color = "#005c4b";
-                    formFieldsWrapper.classList.add("hidden");
-                    verificationScreen.classList.remove("hidden");
-                    document.getElementById("or-separator").classList.add("hidden");
-                    guestBtn.classList.add("hidden");
-                    document.getElementById("toggle-container").classList.add("hidden");
-                }
-            } catch (err) {
-                errorDisplay.innerText = err.message.replace("Firebase: ", "");
-                errorDisplay.style.color = "#ea0038";
-            }
-        });
-
-        // Loop execution monitoring for the email verification screen
-        checkVerificationBtn.addEventListener("click", async () => {
-            if (auth.currentUser) {
-                await reload(auth.currentUser);
-                if (auth.currentUser.emailVerified) {
-                    saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
-                } else {
-                    errorDisplay.innerText = "Confirmation token unconfirmed. Please check your spam folder.";
-                    errorDisplay.style.color = "#ea0038";
-                }
-            }
-        });
-
-        guestBtn.addEventListener("click", async () => {
-            try {
-                const credential = await signInAnonymously(auth);
-                const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
-                await setDoc(doc(db, "users", credential.user.uid), {
-                    uid: credential.user.uid,
-                    name: guestUserTag,
-                    email: "guest@mwamini.local",
-                    status: "Browsing chat lines via temporary guest access.",
-                    accountMode: "standard",
-                    isOnline: true
-                });
-                saveSessionAndRedirect(credential.user.uid, guestUserTag);
-            } catch (err) {
-                errorDisplay.innerText = "Guest bypass failed: " + err.message;
-                errorDisplay.style.color = "#ea0038";
-            }
-        });
-
-        function saveSessionAndRedirect(uid, displayName) {
-            localStorage.setItem("session_uid", uid);
-            localStorage.setItem("session_name", displayName);
-            localStorage.setItem("session_account_mode", "standard");
-            window.location.href = "dashboard.html";
-        }
-    </script>
-</body>
-</html>
+                        uid: credential.user.uid
