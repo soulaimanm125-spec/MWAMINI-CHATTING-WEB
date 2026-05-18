@@ -31,11 +31,11 @@ function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
 
-    // Exit immediately if this script runs on the login screen
-    if (!savedUid && window.location.pathname.includes("dashboard.html")) {
-        window.location.href = "index.html";
-        return;
-    } else if (!savedUid) {
+    // Block logic crashes on auth index screen profiles completely
+    if (!savedUid) {
+        if (window.location.pathname.includes("dashboard.html")) {
+            window.location.href = "index.html";
+        }
         return; 
     }
 
@@ -120,7 +120,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- NATIVE VOICE RECORDING ATTACHMENTS ---
+    // --- AUDIO VOICE CHAT ENGINE ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -174,14 +174,14 @@ function initDashboardPage() {
         document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting high-definition peer Video Link configuration..."));
     }
 
-    // --- PRIVACY SEARCH QUERY SUITE ---
+    // --- SEARCH QUERY ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery("");
 
-    // --- MESSAGE SEND FORM ACTIONS ---
+    // --- INCOMING TRANSMISSIONS FORMS ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
