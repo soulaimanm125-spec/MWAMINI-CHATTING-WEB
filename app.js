@@ -44,14 +44,8 @@ function initDashboardPage() {
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
     
-    // Set user online upon entry
+    // Set user online
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
-
-    // Manage online status before the tab/window is closed
-    window.addEventListener("beforeunload", () => {
-        navigator.sendBeacon;
-        updateDoc(doc(db, "users", currentUser.uid), { isOnline: false });
-    });
 
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
@@ -61,7 +55,7 @@ function initDashboardPage() {
         }
     });
 
-    // --- CUSTOM BACKGROUND CHANGER ---
+    // --- BACKGROUND CHANGER ---
     const bgChanger = document.getElementById("background-changer");
     if (bgChanger) {
         bgChanger.addEventListener("change", (e) => {
@@ -69,13 +63,12 @@ function initDashboardPage() {
             const messageStream = document.getElementById("message-stream");
             if (messageStream) {
                 messageStream.style.backgroundColor = chosenColor;
-                // Readability adjustments for dark themes
                 messageStream.style.color = (chosenColor === "#263238") ? "#ffffff" : "#000000";
             }
         });
     }
 
-    // --- PROTECTED/PUBLIC GROUP CHAT CREATION ---
+    // --- GROUP CREATION SYSTEM ---
     const groupTypeSelect = document.getElementById("group-type-select");
     const groupPassField = document.getElementById("group-password-input");
     const createGroupBtn = document.getElementById("create-group-btn");
@@ -107,17 +100,17 @@ function initDashboardPage() {
             }
 
             try {
-                const groupRef = doc(collection(db, "users")); // Generate room ID mapping
+                const groupRef = doc(collection(db, "users")); 
                 await setDoc(groupRef, {
                     uid: groupRef.id,
-                    name: `[GRP] ${name}`,
-                    status: `Type: ${type.toUpperCase()} Group Channel.`,
+                    name: name,
+                    status: `Group Room Type: ${type.toUpperCase()}`,
                     isGroup: true,
                     groupType: type,
                     groupPassword: password,
                     isOnline: true
                 });
-                alert(`Group chat room "${name}" compiled successfully! Search it to connect.`);
+                alert(`Group chat room "${name}" compiled successfully! It is now permanently visible to everyone.`);
                 if(groupNameInput) groupNameInput.value = "";
                 if(groupPassField) groupPassField.value = "";
             } catch (err) {
@@ -126,22 +119,62 @@ function initDashboardPage() {
         });
     }
 
-    // --- REAL-TIME GLOBAL UNREAD NOTIFICATION TRAFFIC ---
+    // --- NEW: LIVE PERMANENT GROUPS DISCOVERY STREAM ---
+    const discoveryTray = document.getElementById("global-groups-discovery");
+    if (discoveryTray) {
+        onSnapshot(query(collection(db, "users"), where("isGroup", "==", true)), (snapshot) => {
+            discoveryTray.innerHTML = "";
+            if (snapshot.empty) {
+                discoveryTray.innerHTML = `<p style="font-size:11px; color:#667781; text-align:center; padding:10px; margin:0;">No channels built yet. Create one above!</p>`;
+                return;
+            }
+
+            snapshot.forEach((groupDoc) => {
+                const data = groupDoc.data();
+                const element = document.createElement("div");
+                element.style = "display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid #f0f2f5; cursor:pointer; background:#ffffff;";
+                element.onmouseenter = () => element.style.backgroundColor = "#f5f6f6";
+                element.onmouseleave = () => element.style.backgroundColor = "#ffffff";
+
+                const badgeTypeClass = data.groupType === "protected" ? "group-badge-protected" : "group-badge-public";
+                const labelText = data.groupType === "protected" ? "🔒 Protected" : "🔓 Public";
+
+                element.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="background:#005c4b; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:13px;">👥</div>
+                        <div>
+                            <h5 style="margin:0; font-size:13px; color:#111b21; font-weight:600;">${data.name}</h5>
+                            <span class="${badgeTypeClass}">${labelText}</span>
+                        </div>
+                    </div>
+                    <div id="badge-holder-${data.uid}"></div>
+                `;
+
+                element.addEventListener("click", () => {
+                    handleChatTargetActivation(data);
+                });
+
+                discoveryTray.appendChild(element);
+                if (unreadNotificationMap.get(data.uid)) {
+                    triggerSidebarNotificationBadge(data.uid);
+                }
+            });
+        });
+    }
+
+    // --- GLOBAL MESSAGE TRAFFIC UNREAD BADGES ---
     onSnapshot(collection(db, "chats"), (snapshot) => {
         snapshot.forEach((chatDoc) => {
             const data = chatDoc.data();
-            if (data.participants && data.participants.includes(currentUser.uid)) {
-                // Listen to nested channels
-                onSnapshot(query(collection(db, "chats", chatDoc.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (msgSnap) => {
-                    msgSnap.forEach((mDoc) => {
-                        const mData = mDoc.data();
-                        if (mData.senderId !== currentUser.uid && chatDoc.id !== activeChatId) {
-                            unreadNotificationMap.set(chatDoc.id, true);
-                            triggerSidebarNotificationBadge(chatDoc.id);
-                        }
-                    });
+            onSnapshot(query(collection(db, "chats", chatDoc.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (msgSnap) => {
+                msgSnap.forEach((mDoc) => {
+                    const mData = mDoc.data();
+                    if (mData.senderId !== currentUser.uid && chatDoc.id !== activeChatId) {
+                        unreadNotificationMap.set(chatDoc.id, true);
+                        triggerSidebarNotificationBadge(chatDoc.id);
+                    }
                 });
-            }
+            });
         });
     });
 
@@ -215,7 +248,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- VOICE RECORDER ENGINE ---
+    // --- VOICE MEMO CAPTURE ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -262,21 +295,14 @@ function initDashboardPage() {
         });
     }
 
-    if(document.getElementById("trigger-voice-call")) {
-        document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating voice stream..."));
-    }
-    if(document.getElementById("trigger-video-call")) {
-        document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting peer video layout..."));
-    }
-
-    // --- DIRECTORY SEARCH CONTROLS ---
+    // --- SEARCH USERS HANDLER ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery("");
 
-    // --- MESSAGE DISPATCH CAPTURE ---
+    // --- DISPATCH MESSAGE ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -313,14 +339,14 @@ async function executeTargetSearchQuery(keyword) {
     listCanvas.innerHTML = "";
 
     if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name or a chat group to open a feed.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name to open a direct DM window.</p>`;
         return;
     }
 
-    // Dynamic presence lookup: checks both users and groups
-    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
+    // Users lookup explicitly
+    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword), where("isGroup", "==", null)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified users or groups found matching that name.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified users found matching that name.</p>`;
         return;
     }
 
@@ -340,7 +366,6 @@ function buildSidebarChannelElement(userData) {
     row.onmouseenter = () => row.style.backgroundColor = "#f5f6f6";
     row.onmouseleave = () => row.style.backgroundColor = "transparent";
 
-    // Dynamic Online Status Badge Template
     const presenceBadgeClass = userData.isOnline ? "status-online" : "status-offline";
     const presenceText = userData.isOnline ? "online" : "offline";
 
@@ -359,54 +384,59 @@ function buildSidebarChannelElement(userData) {
     `;
 
     row.addEventListener("click", () => {
-        // CHALLENGE CHECK: Handle password gate validation if selecting a protected group
-        if (userData.isGroup && userData.groupType === "protected") {
-            const enteredPassword = prompt(`"${userData.name}" is a protected channel room. Please type the group password to connect:`);
-            if (enteredPassword !== userData.groupPassword) {
-                alert("Access authorization rejected: Invalid group password token.");
-                return;
-            }
-        }
-
-        activeChatId = userData.isGroup ? userData.uid : [currentUser.uid, userData.uid].sort().join("_");
-        activeSessionStartTime = new Date();
-
-        // Clear notification states cleanly upon selection
-        unreadNotificationMap.delete(activeChatId);
-        const badgeElement = document.getElementById(`badge-holder-${userData.uid}`);
-        if(badgeElement) badgeElement.innerHTML = "";
-
-        document.getElementById("no-chat-selected").classList.add("hidden");
-        document.getElementById("active-chat-area").classList.remove("hidden");
-        document.getElementById("chat-header-name").innerText = userData.name;
-        
-        // Update presence header badge dynamically
-        const headerBadge = document.getElementById("chat-header-presence-badge");
-        if (headerBadge) {
-            headerBadge.className = `status-badge ${presenceBadgeClass}`;
-            headerBadge.innerText = presenceText;
-        }
-
-        setDoc(doc(db, "chats", activeChatId), {
-            chatId: activeChatId,
-            participants: userData.isGroup ? [currentUser.uid] : [currentUser.uid, userData.uid],
-            updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
+        handleChatTargetActivation(userData);
     });
 
     if(canvas) {
         canvas.appendChild(row);
-        // Persist notification visibility check on re-renders
         if (unreadNotificationMap.get(activeChatId)) {
             triggerSidebarNotificationBadge(activeChatId);
         }
     }
 }
 
+// --- CENTRALIZED HANDLER FOR ALL CLICK CHAT ENTRY POINTS ---
+function handleChatTargetActivation(userData) {
+    if (userData.isGroup && userData.groupType === "protected") {
+        const enteredPassword = prompt(`"${userData.name}" is a protected channel room. Please type the group password to connect:`);
+        if (enteredPassword !== userData.groupPassword) {
+            alert("Access authorization rejected: Invalid group password token.");
+            return;
+        }
+    }
+
+    activeChatId = userData.isGroup ? userData.uid : [currentUser.uid, userData.uid].sort().join("_");
+    activeSessionStartTime = new Date();
+
+    unreadNotificationMap.delete(activeChatId);
+    const badgeElement = document.getElementById(`badge-holder-${userData.uid}`);
+    if(badgeElement) badgeElement.innerHTML = "";
+
+    document.getElementById("no-chat-selected").classList.add("hidden");
+    document.getElementById("active-chat-area").classList.remove("hidden");
+    document.getElementById("chat-header-name").innerText = userData.name;
+    
+    const headerBadge = document.getElementById("chat-header-presence-badge");
+    if (headerBadge) {
+        if (!userData.isGroup) {
+            headerBadge.className = `status-badge ${userData.isOnline ? 'status-online' : 'status-offline'}`;
+            headerBadge.innerText = userData.isOnline ? 'online' : 'offline';
+        } else {
+            headerBadge.className = userData.groupType === "protected" ? "group-badge-protected" : "group-badge-public";
+            headerBadge.innerText = userData.groupType === "protected" ? "🔒 Protected" : "🔓 Public";
+        }
+    }
+
+    setDoc(doc(db, "chats", activeChatId), {
+        chatId: activeChatId,
+        participants: userData.isGroup ? [currentUser.uid] : [currentUser.uid, userData.uid],
+        updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
+}
+
 function triggerSidebarNotificationBadge(chatId) {
-    // Locate row components based on ID mapping strategy
     const targetedRowId = chatId.includes("_") ? chatId.split("_").find(id => id !== currentUser.uid) : chatId;
     const badgeContainer = document.getElementById(`badge-holder-${targetedRowId}`);
     if (badgeContainer) {
