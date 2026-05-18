@@ -6,31 +6,31 @@
     <title>MWAMINI CHAT WEB</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .auth-container { width: 100%; max-width: 400px; padding: 20px; }
-        .auth-card { background: #ffffff; padding: 40px 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; }
-        .input-group { margin-bottom: 14px; position: relative; }
-        .input-group input { width: 100%; padding: 12px 14px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; transition: border 0.2s; }
-        .input-group input:focus { border-color: #008069; }
-        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 13px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        body { background-color: #008069; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .auth-container { width: 100%; max-width: 450px; }
+        .auth-card { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); width: 100%; }
+        .input-group { margin-bottom: 16px; }
+        .input-group input { width: 100%; padding: 14px; border: 1px solid #cccccc; border-radius: 6px; font-size: 15px; outline: none; transition: border-color 0.2s; background-color: #f8f9fa; }
+        .input-group input:focus { border-color: #008069; background-color: #ffffff; }
+        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
         .btn-primary:hover { background: #004d3e; }
-        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 11px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
-        .btn-secondary-guest:hover { background: rgba(0, 92, 75, 0.05); }
+        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 12px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+        .btn-secondary-guest:hover { background: rgba(0, 92, 75, 0.04); }
         .hidden { display: none !important; }
-        #error-message { min-height: 20px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; line-height: 1.4; }
+        #error-message { min-height: 22px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; line-height: 1.4; color: #ea0038; }
     </style>
 </head>
 <body>
 
     <div class="auth-container">
         <div class="auth-card">
-            <h2 id="auth-title" style="text-align: center; color: #005c4b; font-weight: 800; margin-bottom: 8px; letter-spacing: 0.5px;">MWAMINI CHAT WEB</h2>
+            <h2 style="text-align: center; color: #005c4b; font-weight: 800; margin-bottom: 15px; letter-spacing: 0.3px;">MWAMINI CHAT WEB</h2>
             
             <p id="error-message"></p>
 
             <div id="auth-form-fields">
                 <div class="input-group" id="name-group">
-                    <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
+                    <input type="text" id="auth-name" placeholder="Full Name">
                 </div>
                 <div class="input-group">
                     <input type="email" id="auth-email" placeholder="Email Address">
@@ -39,30 +39,30 @@
                     <input type="password" id="auth-password" placeholder="Password">
                 </div>
                 
-                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -6px; margin-bottom: 16px;">
+                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -5px; margin-bottom: 15px;">
                     <span id="auth-forgot-link" style="color: #667781; font-size: 13px; cursor: pointer; text-decoration: underline;">Forgot Password?</span>
                 </div>
 
                 <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
             </div>
 
-            <div id="verification-notice-screen" class="hidden" style="text-align: center; padding: 10px 0;">
-                <div style="font-size: 54px; margin-bottom: 12px;">✉️</div>
-                <h3 style="color: #005c4b; margin-bottom: 10px; font-weight: 700;">Verify Your Email</h3>
-                <p style="font-size: 13px; color: #667781; line-height: 1.6; margin-bottom: 24px;">
-                    An activation configuration verification link has been successfully dispatched to your email address. Check your inbox to continue.
+            <div id="verification-notice-screen" class="hidden" style="text-align: center; padding: 15px 0;">
+                <div style="font-size: 50px; margin-bottom: 10px;">✉️</div>
+                <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
+                <p style="font-size: 14px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
+                    A verification activation link has been dispatched to your email address. Open it to unlock your chat access profile.
                 </p>
                 <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
             </div>
 
-            <p id="toggle-container" style="margin-top: 24px; text-align: center; font-size: 14px; color: #667781;">
+            <p id="toggle-container" style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
                 <span id="auth-switch-text">Already have an account?</span> 
                 <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 4px;">Login here</span>
             </p>
             
             <div id="or-separator" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
-                <span style="padding: 0 12px; font-weight: 500;">OR</span>
+                <span style="padding: 0 10px;">OR</span>
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
             </div>
             
@@ -128,15 +128,15 @@
             forgotPasswordLink.addEventListener("click", async () => {
                 const emailVal = document.getElementById("auth-email").value.trim();
                 if (!emailVal) {
-                    errorDisplay.innerText = "Please type your email address to receive recovery links.";
+                    errorDisplay.innerText = "Please fill in your email address to get a recovery link.";
                     errorDisplay.style.color = "#ea0038";
                     return;
                 }
-                errorDisplay.innerText = "Transmitting password recovery connection links...";
+                errorDisplay.innerText = "Transmitting reset instructions safely...";
                 errorDisplay.style.color = "#005c4b";
                 try {
                     await sendPasswordResetEmail(auth, emailVal);
-                    errorDisplay.innerText = "Password recovery link dispatched. Check your inbox.";
+                    errorDisplay.innerText = "A reset link has been dispatched to your email address.";
                     errorDisplay.style.color = "#00a884";
                 } catch (err) {
                     errorDisplay.innerText = err.message.replace("Firebase: ", "");
@@ -152,12 +152,12 @@
                 const name = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
 
                 if (errorDisplay) {
-                    errorDisplay.innerText = "Connecting to application gateways...";
+                    errorDisplay.innerText = "Contacting authentication arrays...";
                     errorDisplay.style.color = "#005c4b";
                 }
 
                 if (!email || !password || (!isLoginMode && !name)) {
-                    errorDisplay.innerText = "Please complete all validation profile inputs.";
+                    errorDisplay.innerText = "Please fill out all visible fields carefully.";
                     errorDisplay.style.color = "#ea0038";
                     return;
                 }
@@ -167,7 +167,7 @@
                         const credential = await signInWithEmailAndPassword(auth, email, password);
                         
                         if (!credential.user.emailVerified) {
-                            errorDisplay.innerText = "Account verification email tracking confirmation required.";
+                            errorDisplay.innerText = "Please complete your email verification step to connect.";
                             errorDisplay.style.color = "#ea0038";
                             showVerificationInterface();
                             return;
@@ -182,12 +182,12 @@
                             uid: credential.user.uid,
                             name: name,
                             email: email,
-                            status: "Humbled to join Mwamini Chat.",
+                            status: "Available",
                             accountMode: "standard",
                             isOnline: false
                         });
 
-                        errorDisplay.innerText = "Verification verification complete. Check email inbox.";
+                        errorDisplay.innerText = "Verification link sent! Please verify your identity.";
                         errorDisplay.style.color = "#005c4b";
                         showVerificationInterface();
                     }
@@ -205,7 +205,7 @@
                     if (auth.currentUser.emailVerified) {
                         saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
                     } else {
-                        errorDisplay.innerText = "Verification status pending. Please verify via email verification link.";
+                        errorDisplay.innerText = "Verification link status unchecked. Please verify via your email inbox link.";
                         errorDisplay.style.color = "#ea0038";
                     }
                 }
@@ -215,7 +215,7 @@
         if (guestBtn) {
             guestBtn.addEventListener("click", async () => {
                 if (errorDisplay) {
-                    errorDisplay.innerText = "Configuring temporary workspace keys...";
+                    errorDisplay.innerText = "Allocating secure ephemeral identity...";
                     errorDisplay.style.color = "#005c4b";
                 }
                 try {
@@ -232,7 +232,7 @@
                     });
                     saveSessionAndRedirect(credential.user.uid, guestUserTag);
                 } catch (err) {
-                    errorDisplay.innerText = "Guest entry restricted: " + err.message;
+                    errorDisplay.innerText = "Guest allocation restricted: " + err.message;
                     errorDisplay.style.color = "#ea0038";
                 }
             });
