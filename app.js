@@ -1,9 +1,81 @@
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, collection, query, onSnapshot, doc, setDoc, updateDoc, addDoc, serverTimestamp, orderBy, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MWAMINI CHAT WEB</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .auth-container { width: 100%; max-width: 450px; }
+        .auth-card { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; }
+        .input-group { margin-bottom: 15px; }
+        .input-group input { width: 100%; padding: 14px; border: 1px solid #cccccc; border-radius: 6px; font-size: 15px; outline: none; transition: border-color 0.2s; background-color: #f8f9fa; }
+        .input-group input:focus { border-color: #008069; background-color: #ffffff; }
+        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .btn-primary:hover { background: #004d3e; }
+        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 12px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 15px; transition: background 0.2s; }
+        .btn-secondary-guest:hover { background: rgba(0, 92, 75, 0.04); }
+        .hidden { display: none !important; }
+        #error-message { min-height: 22px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; line-height: 1.4; color: #ea0038; }
+    </style>
+</head>
+<body>
 
-const firebaseConfig = {
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2 style="text-align: center; color: #005c4b; font-weight: 800; margin-bottom: 15px; letter-spacing: 0.3px;">MWAMINI CHAT WEB</h2>
+            
+            <p id="error-message"></p>
+
+            <div id="auth-form-fields">
+                <div class="input-group" id="name-group">
+                    <input type="text" id="auth-name" placeholder="Full Name">
+                </div>
+                <div class="input-group">
+                    <input type="email" id="auth-email" placeholder="Email Address">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="auth-password" placeholder="Password">
+                </div>
+                
+                <div id="forgot-password-container" class="hidden" style="text-align: right; margin-top: -5px; margin-bottom: 15px;">
+                    <span id="auth-forgot-link" style="color: #667781; font-size: 13px; cursor: pointer; text-decoration: underline;">Forgot Password?</span>
+                </div>
+
+                <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
+            </div>
+
+            <div id="verification-notice-screen" class="hidden" style="text-align: center; padding: 15px 0;">
+                <div style="font-size: 50px; margin-bottom: 10px;">✉️</div>
+                <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
+                <p style="font-size: 14px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
+                    A verification link has been sent to your email address. Open it to activate your account.
+                </p>
+                <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
+            </div>
+
+            <p id="toggle-container" style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
+                <span id="auth-switch-text">Already have an account?</span> 
+                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 4px;">Login here</span>
+            </p>
+            
+            <div id="or-separator" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
+                <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
+                <span style="padding: 0 10px;">OR</span>
+                <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
+            </div>
+            
+            <button type="button" id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, sendPasswordResetEmail, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+       const firebaseConfig = {
   apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
   authDomain: "mwamini-chatting-web.firebaseapp.com",
   databaseURL: "https://mwamini-chatting-web-default-rtdb.firebaseio.com",
@@ -14,299 +86,174 @@ const firebaseConfig = {
   measurementId: "G-SW9FBXX78G"
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-let currentUser = null; 
-let activeChatId = null;
-let unsubscribeMessages = null;
-let activeSessionStartTime = null; 
+        let isLoginMode = false; 
 
-let audioMediaRecorder = null;
-let recordedAudioChunks = [];
+        const submitBtn = document.getElementById("auth-submit-btn");
+        const switchLink = document.getElementById("auth-switch-link");
+        const nameGroup = document.getElementById("name-group");
+        const switchText = document.getElementById("auth-switch-text");
+        const errorDisplay = document.getElementById("error-message");
+        const guestBtn = document.getElementById("guest-login-btn");
+        const forgotPasswordContainer = document.getElementById("forgot-password-container");
+        const forgotPasswordLink = document.getElementById("auth-forgot-link");
+        
+        const formFieldsWrapper = document.getElementById("auth-form-fields");
+        const verificationScreen = document.getElementById("verification-notice-screen");
+        const checkVerificationBtn = document.getElementById("verification-check-btn");
 
-function initDashboardPage() {
-    const savedUid = localStorage.getItem("session_uid");
-    const savedName = localStorage.getItem("session_name");
-
-    // Block logic execution safely if path views mismatch
-    if (!savedUid) {
-        if (window.location.pathname.includes("dashboard.html")) {
-            window.location.href = "index.html";
-        }
-        return; 
-    }
-
-    currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
-    updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
-
-    onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if(document.getElementById("current-user-title")) document.getElementById("current-user-title").innerText = data.name;
-            if(document.getElementById("my-status-display")) document.getElementById("my-status-display").innerText = data.status || "Available";
-        }
-    });
-
-    // --- MWAMINI STATUS POST ENGINE ---
-    const updateStatusBtn = document.getElementById("update-status-btn");
-    if (updateStatusBtn) {
-        updateStatusBtn.addEventListener("click", async () => {
-            const input = document.getElementById("status-input");
-            const mediaInput = document.getElementById("status-media-file");
-            const textPayload = input ? input.value.trim() : "";
-            const attachedFile = mediaInput ? mediaInput.files[0] : null;
-
-            if (!textPayload && !attachedFile) return;
-            let downloadedMediaUrl = "";
-            let computedMediaType = "text";
-
-            try {
-                if (attachedFile) {
-                    computedMediaType = attachedFile.type.startsWith("video/") ? "video" : "image";
-                    const storageLocationRef = ref(storage, `mwamini_statuses/${currentUser.uid}/${Date.now()}_${attachedFile.name}`);
-                    const snapshot = await uploadBytes(storageLocationRef, attachedFile);
-                    downloadedMediaUrl = await getDownloadURL(snapshot.ref);
-                }
-
-                await addDoc(collection(db, "statuses"), {
-                    uid: currentUser.uid,
-                    userName: currentUser.name,
-                    accountMode: "standard",
-                    textPayload: textPayload || `Posted an update status ${computedMediaType}`,
-                    mediaUrl: downloadedMediaUrl,
-                    statusType: computedMediaType,
-                    createdAt: serverTimestamp()
-                });
-
-                await updateDoc(doc(db, "users", currentUser.uid), { status: textPayload || "Active with a story update." });
-                if(input) input.value = "";
-                if(mediaInput) mediaInput.value = "";
-                alert("Your MWAMINI status story line has been successfully dispatched.");
-            } catch (err) {
-                alert("Status story delivery dropped: " + err.message);
-            }
-        });
-    }
-
-    const retentionThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    onSnapshot(query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20)), (snapshot) => {
-        const feedContainerTray = document.getElementById("active-statuses-view");
-        if (!feedContainerTray) return;
-        feedContainerTray.innerHTML = "";
-
-        snapshot.forEach((statusDoc) => {
-            const data = statusDoc.data();
-            if (!data.createdAt) return;
-            if (data.createdAt.toDate() > retentionThreshold) {
-                const layoutBubble = document.createElement("div");
-                layoutBubble.style = "background: #e1f5fe; border: 1px solid #b3e5fc; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #01579b; cursor: pointer; display: flex; flex-direction: column; gap: 4px; white-space:nowrap;";
+        if (switchLink) {
+            switchLink.addEventListener("click", () => {
+                isLoginMode = !isLoginMode;
+                if (errorDisplay) errorDisplay.innerText = "";
                 
-                let embeddedMediaOutputElement = "";
-                if (data.statusType === "image") {
-                    embeddedMediaOutputElement = `<img src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">`;
-                } else if (data.statusType === "video") {
-                    embeddedMediaOutputElement = `<video src="${data.mediaUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;" muted></video>`;
+                if (isLoginMode) {
+                    if (submitBtn) submitBtn.innerText = "Login";
+                    if (switchLink) switchLink.innerText = "Register here";
+                    if (switchText) switchText.innerText = "Don't have an account?";
+                    if (nameGroup) nameGroup.style.display = "none";
+                    if (forgotPasswordContainer) forgotPasswordContainer.classList.remove("hidden");
+                } else {
+                    if (submitBtn) submitBtn.innerText = "Register";
+                    if (switchLink) switchLink.innerText = "Login here";
+                    if (switchText) switchText.innerText = "Already have an account?";
+                    if (nameGroup) nameGroup.style.display = "block";
+                    if (forgotPasswordContainer) forgotPasswordContainer.classList.add("hidden");
                 }
+            });
+        }
 
-                layoutBubble.innerHTML = `<strong>${data.userName}</strong><span>${data.textPayload}</span>${embeddedMediaOutputElement}`;
-                if (data.mediaUrl) {
-                    layoutBubble.addEventListener("click", () => window.open(data.mediaUrl, "_blank"));
-                }
-                feedContainerTray.appendChild(layoutBubble);
-            }
-        });
-    });
-
-    // --- VOICE AUDIO MEMO ATTACHMENTS ENGINE ---
-    const recordVoiceBtn = document.getElementById("voice-record-btn");
-    const recordStatusText = document.getElementById("voice-recording-status");
-
-    if (recordVoiceBtn) {
-        recordVoiceBtn.addEventListener("click", async () => {
-            if (!activeChatId) return;
-            if (!audioMediaRecorder) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    audioMediaRecorder = new MediaRecorder(stream);
-                    audioMediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedAudioChunks.push(e.data); };
-                    audioMediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(recordedAudioChunks, { type: "audio/ogg; codecs=opus" });
-                        recordedAudioChunks = [];
-                        if(recordStatusText) recordStatusText.classList.add("hidden");
-                        recordVoiceBtn.style.color = "initial";
-
-                        const voiceStorageRef = ref(storage, `voice_memos/${activeChatId}/${Date.now()}_clip.ogg`);
-                        const snap = await uploadBytes(voiceStorageRef, audioBlob);
-                        const downloadUrl = await getDownloadURL(snap.ref);
-
-                        await addDoc(collection(db, "chats", activeChatId, "messages"), {
-                            text: "Voice Note Spatial Transmission",
-                            fileUrl: downloadUrl,
-                            type: "audio",
-                            senderId: currentUser.uid,
-                            senderName: currentUser.name,
-                            createdAt: serverTimestamp()
-                        });
-                    };
-                } catch (err) {
-                    alert("Audio capturing permission rejected: " + err.message);
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener("click", async () => {
+                const emailVal = document.getElementById("auth-email").value.trim();
+                if (!emailVal) {
+                    errorDisplay.innerText = "Please enter your email to request a reset link.";
+                    errorDisplay.style.color = "#ea0038";
                     return;
                 }
-            }
-
-            if (audioMediaRecorder.state === "inactive") {
-                audioMediaRecorder.start();
-                if(recordStatusText) recordStatusText.classList.remove("hidden");
-                recordVoiceBtn.style.color = "#ea0038";
-            } else {
-                audioMediaRecorder.stop();
-            }
-        });
-    }
-
-    if(document.getElementById("trigger-voice-call")) {
-        document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating secure encrypted Voice Call stream..."));
-    }
-    if(document.getElementById("trigger-video-call")) {
-        document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting high-definition peer Video Link configuration..."));
-    }
-
-    // --- SIDEBAR PRIVACY SEARCH QUERY SUITE ---
-    const searchField = document.getElementById("search-users");
-    if (searchField) {
-        searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
-    }
-    executeTargetSearchQuery("");
-
-    // --- MESSAGE SEND WORKFLOWS ---
-    const messageForm = document.getElementById("message-form");
-    if (messageForm) {
-        messageForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const input = document.getElementById("message-input");
-            if (!input || !input.value.trim() || !activeChatId) return;
-
-            const basePayloadText = input.value.trim();
-            input.value = "";
-
-            await addDoc(collection(db, "chats", activeChatId, "messages"), {
-                text: basePayloadText,
-                type: "text",
-                senderId: currentUser.uid,
-                senderName: currentUser.name,
-                createdAt: serverTimestamp()
+                errorDisplay.innerText = "Sending reset link...";
+                errorDisplay.style.color = "#005c4b";
+                try {
+                    await sendPasswordResetEmail(auth, emailVal);
+                    errorDisplay.innerText = "Reset link sent to your inbox.";
+                    errorDisplay.style.color = "#00a884";
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
             });
-        });
-    }
-
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", async () => {
-            await updateDoc(doc(db, "users", currentUser.uid), { isOnline: false }).catch(() => {});
-            localStorage.clear();
-            signOut(auth).finally(() => { window.location.href = "index.html"; });
-        });
-    }
-}
-
-async function executeTargetSearchQuery(keyword) {
-    const listCanvas = document.getElementById("users-container");
-    if (!listCanvas) return;
-    listCanvas.innerHTML = "";
-
-    if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to clear privacy filter.</p>`;
-        return;
-    }
-
-    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
-    if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified identity matching resolved.</p>`;
-        return;
-    }
-
-    queryResultSnap.forEach((userDoc) => {
-        const data = userDoc.data();
-        if (data.uid !== currentUser.uid) {
-            buildSidebarChannelElement(data);
         }
-    });
-}
 
-function buildSidebarChannelElement(userData) {
-    const canvas = document.getElementById("users-container");
-    const row = document.createElement("div");
-    row.style = "display:flex; align-items:center; gap:10px; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
-    row.onmouseenter = () => row.style.backgroundColor = "#f5f6f6";
-    row.onmouseleave = () => row.style.backgroundColor = "transparent";
+        if (submitBtn) {
+            submitBtn.addEventListener("click", async () => {
+                const email = document.getElementById("auth-email").value.trim();
+                const password = document.getElementById("auth-password").value.trim();
+                const name = document.getElementById("auth-name") ? document.getElementById("auth-name").value.trim() : "";
 
-    row.innerHTML = `
-        <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${userData.name.charAt(0).toUpperCase()}</div>
-        <div style="flex: 1;">
-            <h4 style="margin:0; font-size:14px; color:#111b21; font-weight: 600;">${userData.name}</h4>
-            <p style="margin:0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${userData.status || 'Available'}</p>
-        </div>
-    `;
-
-    row.addEventListener("click", () => {
-        activeChatId = [currentUser.uid, userData.uid].sort().join("_");
-        activeSessionStartTime = new Date();
-
-        if(document.getElementById("no-chat-selected")) document.getElementById("no-chat-selected").classList.add("hidden");
-        if(document.getElementById("active-chat-area")) document.getElementById("active-chat-area").classList.remove("hidden");
-        if(document.getElementById("chat-header-name")) document.getElementById("chat-header-name").innerText = userData.name;
-
-        setDoc(doc(db, "chats", activeChatId), {
-            chatId: activeChatId,
-            participants: [currentUser.uid, userData.uid],
-            updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
-    });
-
-    if(canvas) {
-        canvas.innerHTML = "";
-        canvas.appendChild(row);
-    }
-}
-
-function bindLiveIsolatedMessageStreams(collectionReference) {
-    if (unsubscribeMessages) unsubscribeMessages();
-    unsubscribeMessages = onSnapshot(query(collectionReference, orderBy("createdAt", "asc")), (snapshot) => {
-        const chatBoxWindow = document.getElementById("message-stream");
-        if (!chatBoxWindow) return;
-        chatBoxWindow.innerHTML = "";
-
-        snapshot.forEach((msgDoc) => {
-            const data = msgDoc.data();
-            if (!data.createdAt) return;
-
-            if (data.createdAt.toDate() >= activeSessionStartTime) {
-                const bubbleRow = document.createElement("div");
-                const isMe = data.senderId === currentUser.uid;
-                bubbleRow.style = `display:flex; justify-content:${isMe ? 'flex-end' : 'flex-start'}; margin-bottom:10px;`;
-                
-                let visualPayloadOutputBlock = "";
-                if (data.type === "audio") {
-                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px; outline:none;"></audio>`;
-                } else {
-                    visualPayloadOutputBlock = `<p style="margin:0; font-size:14.5px; white-space:pre-wrap; line-height:1.4; color:#111b21;">${data.text}</p>`;
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Connecting...";
+                    errorDisplay.style.color = "#005c4b";
                 }
 
-                bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.08); max-width:65%; word-wrap:break-word;">${visualPayloadOutputBlock}</div>`;
-                chatBoxWindow.appendChild(bubbleRow);
-            }
-        });
-        chatBoxWindow.scrollTop = chatBoxWindow.scrollHeight;
-    });
-}
+                if (!email || !password || (!isLoginMode && !name)) {
+                    errorDisplay.innerText = "Please fill in all inputs.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initDashboardPage);
-} else {
-    initDashboardPage();
-}
+                try {
+                    if (isLoginMode) {
+                        const credential = await signInWithEmailAndPassword(auth, email, password);
+                        
+                        if (!credential.user.emailVerified) {
+                            errorDisplay.innerText = "Email verification required.";
+                            errorDisplay.style.color = "#ea0038";
+                            showVerificationInterface();
+                            return;
+                        }
+                        
+                        saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                    } else {
+                        const credential = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(credential.user);
+                        
+                        await setDoc(doc(db, "users", credential.user.uid), {
+                            uid: credential.user.uid,
+                            name: name,
+                            email: email,
+                            status: "Available",
+                            accountMode: "standard",
+                            isOnline: false
+                        });
+
+                        errorDisplay.innerText = "Verification link sent! Please check your email.";
+                        errorDisplay.style.color = "#005c4b";
+                        showVerificationInterface();
+                    }
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (checkVerificationBtn) {
+            checkVerificationBtn.addEventListener("click", async () => {
+                if (auth.currentUser) {
+                    await reload(auth.currentUser);
+                    if (auth.currentUser.emailVerified) {
+                        saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
+                    } else {
+                        errorDisplay.innerText = "Still unverified. Please look inside your email box.";
+                        errorDisplay.style.color = "#ea0038";
+                    }
+                }
+            });
+        }
+
+        if (guestBtn) {
+            guestBtn.addEventListener("click", async () => {
+                if (errorDisplay) {
+                    errorDisplay.innerText = "Configuring guest session...";
+                    errorDisplay.style.color = "#005c4b";
+                }
+                try {
+                    const credential = await signInAnonymously(auth);
+                    const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
+                    
+                    await setDoc(doc(db, "users", credential.user.uid), {
+                        uid: credential.user.uid,
+                        name: guestUserTag,
+                        email: "guest@mwamini.local",
+                        status: "Exploring under Guest Mode.",
+                        accountMode: "standard",
+                        isOnline: true
+                    });
+                    saveSessionAndRedirect(credential.user.uid, guestUserTag);
+                } catch (err) {
+                    errorDisplay.innerText = "Guest registration error: " + err.message;
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        function showVerificationInterface() {
+            if (formFieldsWrapper) formFieldsWrapper.classList.add("hidden");
+            if (verificationScreen) verificationScreen.classList.remove("hidden");
+            if (document.getElementById("or-separator")) document.getElementById("or-separator").classList.add("hidden");
+            if (guestBtn) guestBtn.classList.add("hidden");
+            if (document.getElementById("toggle-container")) document.getElementById("toggle-container").classList.add("hidden");
+        }
+
+        function saveSessionAndRedirect(uid, displayName) {
+            localStorage.setItem("session_uid", uid);
+            localStorage.setItem("session_name", displayName);
+            localStorage.setItem("session_account_mode", "standard");
+            window.location.href = "dashboard.html";
+        }
+    </script>
+</body>
+</html>
