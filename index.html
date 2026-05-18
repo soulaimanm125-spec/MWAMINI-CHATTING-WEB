@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB</title>
-    <link rel="stylesheet" href="./style.css"> 
+    <title>MWAMINI CHAT WEB - Gateway</title>
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div class="auth-container">
         <div class="auth-card" id="auth-card">
-            <h2 id="auth-title" class="brand-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 10px;">MWAMINI CHAT WEB</h2>
+            <h2 id="auth-title" class="brand-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 15px;">MWAMINI CHAT WEB</h2>
             
-            <div id="error-message" style="color: #ea0038; font-size: 13px; text-align: center; margin-bottom: 15px; font-weight: 500; min-height: 18px;"></div>
+            <p id="error-message" style="color: #ea0038; font-size: 13px; font-weight: 500; text-align: center; margin-bottom: 12px; min-height: 18px;"></p>
 
             <div class="input-group" id="name-group">
-                <input type="text" id="auth-name" placeholder="Full Name (For Registration)" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
             </div>
             <div class="input-group">
-                <input type="email" id="auth-email" placeholder="Email Address" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <input type="email" id="auth-email" placeholder="Email Address">
             </div>
             <div class="input-group">
-                <input type="password" id="auth-password" placeholder="Password" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <input type="password" id="auth-password" placeholder="Password">
             </div>
 
-            <button type="button" id="auth-submit-btn" style="width: 100%; background: #005c4b; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: 0.2s;">Register</button>
+            <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
 
-            <p style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
+            <p style="margin-top: 15px; text-align: center; font-size: 14px; color: #667781;">
                 <span id="auth-switch-text">Already have an account?</span> 
-                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Login here</span>
+                <button type="button" id="auth-switch-link" class="btn-link" style="color: #00a884; font-weight: bold; background: none; border: none; text-decoration: underline; cursor: pointer; padding: 0; margin-left: 5px;">Login here</button>
             </p>
             
-            <div style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
+            <div class="separator-line" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
                 <span style="padding: 0 10px;">OR</span>
                 <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
             </div>
-
-            <button type="button" id="guest-login-btn" style="width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer;">Enter via Guest Mode</button>
+            
+            <button type="button" id="guest-login-btn" class="btn-secondary-guest" style="width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer;">Enter via Guest Mode</button>
         </div>
     </div>
 
