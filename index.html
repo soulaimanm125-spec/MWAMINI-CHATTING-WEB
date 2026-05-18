@@ -1,86 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="wey5UiXw6WMhkz6T7LKfWkG9cxuMdXKHVMFhCGWX960" /> 
-    
-    <title>MWAMINI CHAT WEB</title>
-    <link rel="stylesheet" href="./style.css">
-    <style>
-        .auth-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f0f2f5; font-family: sans-serif; }
-        .auth-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
-        .input-group input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .btn-primary { width: 100%; background: #005c4b; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .btn-secondary-guest { width: 100%; background: transparent; color: #005c4b; border: 2px dashed #005c4b; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
-        .hidden { display: none !important; }
-    </style>
-</head>
-<body>
-
-    <div class="auth-container">
-        <div class="auth-card">
-            <h2 id="auth-title" style="text-align: center; color: #005c4b; font-weight: bold; margin-bottom: 5px;">MWAMINI CHAT WEB</h2>
-            
-            <p id="error-message" style="color: #ea0038; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 15px; min-height: 18px;"></p>
-
-            <div id="auth-form-fields">
-                <div class="input-group" id="name-group">
-                    <input type="text" id="auth-name" placeholder="Full Name (For Registration)">
-                </div>
-                <div class="input-group">
-                    <input type="email" id="auth-email" placeholder="Email Address">
-                </div>
-                <div class="input-group">
-                    <input type="password" id="auth-password" placeholder="Password">
-                </div>
-                <button type="button" id="auth-submit-btn" class="btn-primary">Register</button>
-            </div>
-
-            <div id="verification-notice-screen" class="hidden" style="text-align: center;">
-                <div style="font-size: 48px; margin-bottom: 10px;">✉️</div>
-                <h3 style="color: #005c4b; margin-bottom: 10px;">Verify Your Email</h3>
-                <p style="font-size: 13px; color: #667781; line-height: 1.5; margin-bottom: 20px;">
-                    An activation confirmation email link has been broadcast to your inbox. Complete registration automatically by opening the link.
-                </p>
-                <button type="button" id="verification-check-btn" class="btn-primary" style="background: #00a884;">I Have Verified My Email</button>
-            </div>
-
-            <p id="toggle-container" style="margin-top: 20px; text-align: center; font-size: 14px; color: #667781;">
-                <span id="auth-switch-text">Already have an account?</span> 
-                <span id="auth-switch-link" style="color: #00a884; font-weight: bold; cursor: pointer; text-decoration: underline; margin-left: 5px;">Login here</span>
-            </p>
-            
-            <div id="or-separator" style="display: flex; align-items: center; text-align: center; margin: 20px 0; color: #8696a0; font-size: 12px;">
-                <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
-                <span style="padding: 0 10px;">OR</span>
-                <div style="flex: 1; border-bottom: 1px solid #e9edef;"></div>
-            </div>
-            
-            <button type="button" id="guest-login-btn" class="btn-secondary-guest">Enter via Guest Mode</button>
-        </div>
-    </div>
-
-    <script type="module">
+<script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously, sendEmailVerification, reload } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // Dynamic multi-environment Firebase configuration metrics
         const firebaseConfig = {
-          apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
-          authDomain: "mwamini-chatting-web.firebaseapp.com",
-          projectId: "mwamini-chatting-web",
-          storageBucket: "mwamini-chatting-web.firebasestorage.app",
-          messagingSenderId: "640958885512",
-          appId: "1:640958885512:web:2f9a636acc85534009b93d"
-        };
+  apiKey: "AIzaSyBtDMYBR0jcyK-JfgsYtET1SenPngzmQi4",
+  authDomain: "mwamini-chatting-web.firebaseapp.com",
+  databaseURL: "https://mwamini-chatting-web-default-rtdb.firebaseio.com",
+  projectId: "mwamini-chatting-web",
+  storageBucket: "mwamini-chatting-web.firebasestorage.app",
+  messagingSenderId: "640958885512",
+  appId: "1:640958885512:web:2f9a636acc85534009b93d",
+  measurementId: "G-SW9FBXX78G"
+};
 
+        // Core Initialization
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         let isLoginMode = false; 
 
+        // Target UI interactive DOM nodes
         const submitBtn = document.getElementById("auth-submit-btn");
         const switchLink = document.getElementById("auth-switch-link");
         const nameGroup = document.getElementById("name-group");
@@ -92,56 +34,134 @@
         const verificationScreen = document.getElementById("verification-notice-screen");
         const checkVerificationBtn = document.getElementById("verification-check-btn");
 
-        switchLink.addEventListener("click", () => {
-            isLoginMode = !isLoginMode;
-            errorDisplay.innerText = "";
-            if (isLoginMode) {
-                submitBtn.innerText = "Login";
-                switchLink.innerText = "Register here";
-                switchText.innerText = "Don't have an account?";
-                nameGroup.style.display = "none";
-            } else {
-                submitBtn.innerText = "Register";
-                switchLink.innerText = "Login here";
-                switchText.innerText = "Already have an account?";
-                nameGroup.style.display = "block";
-            }
-        });
-
-        submitBtn.addEventListener("click", async () => {
-            const email = document.getElementById("auth-email").value.trim();
-            const password = document.getElementById("auth-password").value.trim();
-            const name = document.getElementById("auth-name").value.trim();
-
-            errorDisplay.innerText = "Processing...";
-            errorDisplay.style.color = "#005c4b";
-
-            if (!email || !password || (!isLoginMode && !name)) {
-                errorDisplay.innerText = "Please complete all field requirements.";
-                errorDisplay.style.color = "#ea0038";
-                return;
-            }
-
-            try {
+        // Toggle form layouts between login and register views
+        if (switchLink) {
+            switchLink.addEventListener("click", () => {
+                isLoginMode = !isLoginMode;
+                errorDisplay.innerText = "";
                 if (isLoginMode) {
-                    const credential = await signInWithEmailAndPassword(auth, email, password);
-                    
-                    if (!credential.user.emailVerified) {
-                        errorDisplay.innerText = "This profile's verification link is unconfirmed.";
-                        errorDisplay.style.color = "#ea0038";
-                        formFieldsWrapper.classList.add("hidden");
-                        verificationScreen.classList.remove("hidden");
-                        document.getElementById("or-separator").classList.add("hidden");
-                        guestBtn.classList.add("hidden");
-                        document.getElementById("toggle-container").classList.add("hidden");
-                        return;
-                    }
-                    
-                    saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                    submitBtn.innerText = "Login";
+                    switchLink.innerText = "Register here";
+                    switchText.innerText = "Don't have an account?";
+                    if (nameGroup) nameGroup.style.display = "none";
                 } else {
-                    const credential = await createUserWithEmailAndPassword(auth, email, password);
-                    
-                    await sendEmailVerification(credential.user);
+                    submitBtn.innerText = "Register";
+                    switchLink.innerText = "Login here";
+                    switchText.innerText = "Already have an account?";
+                    if (nameGroup) nameGroup.style.display = "block";
+                }
+            });
+        }
+
+        // Processing regular authentication submission actions
+        if (submitBtn) {
+            submitBtn.addEventListener("click", async () => {
+                const emailInput = document.getElementById("auth-email");
+                const passwordInput = document.getElementById("auth-password");
+                const nameInput = document.getElementById("auth-name");
+
+                const email = emailInput ? emailInput.value.trim() : "";
+                const password = passwordInput ? passwordInput.value.trim() : "";
+                const name = nameInput ? nameInput.value.trim() : "";
+
+                errorDisplay.innerText = "Processing workspace allocation...";
+                errorDisplay.style.color = "#005c4b";
+
+                if (!email || !password || (!isLoginMode && !name)) {
+                    errorDisplay.innerText = "Please complete all fields humbly.";
+                    errorDisplay.style.color = "#ea0038";
+                    return;
+                }
+
+                try {
+                    if (isLoginMode) {
+                        const credential = await signInWithEmailAndPassword(auth, email, password);
+                        
+                        if (!credential.user.emailVerified) {
+                            errorDisplay.innerText = "Please verify your email address to enter.";
+                            errorDisplay.style.color = "#ea0038";
+                            showVerificationInterface();
+                            return;
+                        }
+                        
+                        saveSessionAndRedirect(credential.user.uid, email.split("@")[0]);
+                    } else {
+                        const credential = await createUserWithEmailAndPassword(auth, email, password);
+                        await sendEmailVerification(credential.user);
+                        
+                        await setDoc(doc(db, "users", credential.user.uid), {
+                            uid: credential.user.uid,
+                            name: name,
+                            email: email,
+                            status: "Humbled to join the community.",
+                            accountMode: "standard",
+                            isOnline: false
+                        });
+
+                        errorDisplay.innerText = "Verification message dispatched successfully.";
+                        errorDisplay.style.color = "#005c4b";
+                        showVerificationInterface();
+                    }
+                } catch (err) {
+                    errorDisplay.innerText = err.message.replace("Firebase: ", "");
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        if (checkVerificationBtn) {
+            checkVerificationBtn.addEventListener("click", async () => {
+                if (auth.currentUser) {
+                    await reload(auth.currentUser);
+                    if (auth.currentUser.emailVerified) {
+                        saveSessionAndRedirect(auth.currentUser.uid, auth.currentUser.email.split("@")[0]);
+                    } else {
+                        errorDisplay.innerText = "Verification pending. Please check your inbox or spam folder.";
+                        errorDisplay.style.color = "#ea0038";
+                    }
+                }
+            });
+        }
+
+        // Instant Guest Access Entry Point Handling
+        if (guestBtn) {
+            guestBtn.addEventListener("click", async () => {
+                errorDisplay.innerText = "Setting up attractive guest identity...";
+                errorDisplay.style.color = "#005c4b";
+                try {
+                    const credential = await signInAnonymously(auth);
+                    const guestUserTag = "GUEST_" + credential.user.uid.substring(0, 5).toUpperCase();
                     
                     await setDoc(doc(db, "users", credential.user.uid), {
-                        uid: credential.user.uid
+                        uid: credential.user.uid,
+                        name: guestUserTag,
+                        email: "guest@mwamini.local",
+                        status: "Exploring Mwamini space via temporary access.",
+                        accountMode: "standard",
+                        isOnline: true
+                    });
+                    saveSessionAndRedirect(credential.user.uid, guestUserTag);
+                } catch (err) {
+                    errorDisplay.innerText = "Guest entry restricted: " + err.message;
+                    errorDisplay.style.color = "#ea0038";
+                }
+            });
+        }
+
+        function showVerificationInterface() {
+            if (formFieldsWrapper) formFieldsWrapper.classList.add("hidden");
+            if (verificationScreen) verificationScreen.classList.remove("hidden");
+            const sep = document.getElementById("or-separator");
+            if (sep) sep.classList.add("hidden");
+            if (guestBtn) guestBtn.classList.add("hidden");
+            const toggleCont = document.getElementById("toggle-container");
+            if (toggleCont) toggleCont.classList.add("hidden");
+        }
+
+        function saveSessionAndRedirect(uid, displayName) {
+            localStorage.setItem("session_uid", uid);
+            localStorage.setItem("session_name", displayName);
+            localStorage.setItem("session_account_mode", "standard");
+            window.location.href = "dashboard.html";
+        }
+    </script>
