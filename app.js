@@ -31,7 +31,7 @@ function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
 
-    // Block logic crashes on auth index screen profiles completely
+    // Block logic execution safely if path views mismatch
     if (!savedUid) {
         if (window.location.pathname.includes("dashboard.html")) {
             window.location.href = "index.html";
@@ -120,7 +120,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- AUDIO VOICE CHAT ENGINE ---
+    // --- VOICE AUDIO MEMO ATTACHMENTS ENGINE ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -174,14 +174,14 @@ function initDashboardPage() {
         document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting high-definition peer Video Link configuration..."));
     }
 
-    // --- SEARCH QUERY ---
+    // --- SIDEBAR PRIVACY SEARCH QUERY SUITE ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery("");
 
-    // --- INCOMING TRANSMISSIONS FORMS ---
+    // --- MESSAGE SEND WORKFLOWS ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -239,13 +239,15 @@ async function executeTargetSearchQuery(keyword) {
 function buildSidebarChannelElement(userData) {
     const canvas = document.getElementById("users-container");
     const row = document.createElement("div");
-    row.style = "display:flex; align-items:center; gap:10px; padding:10px; cursor:pointer; border-bottom:1px solid #f0f2f5;";
+    row.style = "display:flex; align-items:center; gap:10px; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
+    row.onmouseenter = () => row.style.backgroundColor = "#f5f6f6";
+    row.onmouseleave = () => row.style.backgroundColor = "transparent";
 
     row.innerHTML = `
-        <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">${userData.name.charAt(0).toUpperCase()}</div>
-        <div>
-            <h4 style="margin:0; font-size:14px; color:#111b21;">${userData.name}</h4>
-            <p style="margin:0; font-size:12px; color:#667781;">${userData.status || 'Available'}</p>
+        <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${userData.name.charAt(0).toUpperCase()}</div>
+        <div style="flex: 1;">
+            <h4 style="margin:0; font-size:14px; color:#111b21; font-weight: 600;">${userData.name}</h4>
+            <p style="margin:0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${userData.status || 'Available'}</p>
         </div>
     `;
 
@@ -290,12 +292,12 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                 
                 let visualPayloadOutputBlock = "";
                 if (data.type === "audio") {
-                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px;"></audio>`;
+                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px; outline:none;"></audio>`;
                 } else {
-                    visualPayloadOutputBlock = `<p style="margin:0; font-size:14px; white-space:pre-wrap;">${data.text}</p>`;
+                    visualPayloadOutputBlock = `<p style="margin:0; font-size:14.5px; white-space:pre-wrap; line-height:1.4; color:#111b21;">${data.text}</p>`;
                 }
 
-                bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.05); max-width:60%;">${visualPayloadOutputBlock}</div>`;
+                bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.08); max-width:65%; word-wrap:break-word;">${visualPayloadOutputBlock}</div>`;
                 chatBoxWindow.appendChild(bubbleRow);
             }
         });
