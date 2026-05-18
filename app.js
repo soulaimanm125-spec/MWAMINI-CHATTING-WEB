@@ -23,10 +23,7 @@ let currentUser = null;
 let activeChatId = null;
 let isGroupChat = false;
 let unsubscribeMessages = null;
-
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
+let activeSessionStartTime = null; // Tracks connection instance window timestamps
 
 export function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
@@ -41,76 +38,84 @@ export function initDashboardPage() {
     currentUser = { uid: savedUid, name: savedName, accountMode: savedMode || "standard" };
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
-    // --- CONTINUOUS ACCOUNT SYNCHRONIZATION EVENT ROUTINE ---
+    // Save profile metadata snapshot synchronization hook
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             document.getElementById("current-user-title").innerText = data.name;
             document.getElementById("my-status-display").innerText = data.status || "Available";
-            const avatarPreview = document.getElementById("my-global-avatar-preview");
-            if (avatarPreview) {
-                if (data.avatarUrl) {
-                    avatarPreview.innerHTML = `<img src="${data.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
-                } else {
-                    avatarPreview.innerText = data.name.charAt(0).toUpperCase();
-                }
-            }
         }
     });
 
-    // --- FILE SYSTEM EXCHANGE ROUTINE ---
-    const mediaInput = document.getElementById("file-input");
-    mediaInput.addEventListener("change", async (e) => {
-        const file = e.target.files[0];
-        if (!file || !activeChatId) return;
-
-        const statusTracker = document.getElementById("chat-header-status-text");
-        statusTracker.innerText = "📎 Processing attachment data...";
+    // --- UPGRADED: STATUS STORIES TIMELINE DISPATCH MANAGER ---
+    document.getElementById("update-status-btn").addEventListener("click", async () => {
+        const input = document.getElementById("status-input");
+        const statusText = input.value.trim();
+        if (!statusText) return;
 
         try {
-            const storageRef = ref(storage, `shared_media/${activeChatId}/${Date.now()}_${file.name}`);
-            const uploadSnap = await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(uploadSnap.ref);
-
-            let docClass = "document";
-            if (file.type.startsWith("image/")) docClass = "image";
-            else if (file.type.startsWith("video/")) docClass = "video";
-
-            const collectionRoute = isGroupChat 
-                ? collection(db, "groups", activeChatId, "messages")
-                : collection(db, "chats", activeChatId, "messages");
-
-            await addDoc(collectionRoute, {
-                text: file.name,
-                fileUrl: downloadUrl,
-                type: docClass,
-                senderId: currentUser.uid,
-                senderName: currentUser.name,
+            await addDoc(collection(db, "statuses"), {
+                uid: currentUser.uid,
+                userName: currentUser.name,
+                accountMode: currentUser.accountMode,
+                textPayload: statusText,
                 createdAt: serverTimestamp()
             });
-        } catch (err) {
-            alert("File delivery transmission failure: " + err.message);
-        } finally {
-            statusTracker.innerText = "secure session channel";
-            mediaInput.value = "";
-        }
+            await updateDoc(doc(db, "users", currentUser.uid), { status: statusText });
+            input.value = "";
+            alert("Status story updated successfully.");
+        } catch(e) { console.error("Status dispatch dropped: ", e); }
     });
 
-    // --- TEXT CHAT TRANSMISSION TRIGGER ---
+    // Mount structural active live timeline subscriber listener
+    const historicalThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24-hour retention marker
+    const liveStatusQuery = query(
+        collection(db, "statuses"), 
+        where("accountMode", "==", currentUser.accountMode),
+        orderBy("createdAt", "desc"),
+        limit(15)
+    );
+
+    onSnapshot(liveStatusQuery, (snapshot) => {
+        const platformFeedTray = document.getElementById("active-statuses-view");
+        if (!platformFeedTray) return;
+        platformFeedTray.innerHTML = "";
+        
+        snapshot.forEach((statusDoc) => {
+            const data = statusDoc.data();
+            if (!data.createdAt) return;
+            
+            // Client side calculation safety checks for 24-hour expiration frames
+            if(data.createdAt.toDate() > historicalThreshold) {
+                const bubble = document.createElement("div");
+                bubble.style = "background: #005c4b; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: help;";
+                bubble.innerText = `${data.userName}: ${data.textPayload}`;
+                platformFeedTray.appendChild(bubble);
+            }
+        });
+    });
+
+    // --- UPGRADED: SEARCH EXACT NAMES ONLY PRIVACY DIRECTORY ---
+    const searchField = document.getElementById("search-users");
+    searchField.addEventListener("input", (e) => {
+        executeTargetSearchQuery(e.target.value.trim());
+    });
+
+    // Leave list interface fully empty upon baseline initial launch state execution
+    executeTargetSearchQuery("");
+
+    // --- TEXT MESSAGE INPUT DELIVERY FLOW ---
     document.getElementById("message-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("message-input");
         if (!input.value.trim() || !activeChatId) return;
 
-        const originalText = input.value.trim();
+        const basePayloadText = input.value.trim();
         input.value = "";
 
-        const collectionRoute = isGroupChat 
-            ? collection(db, "groups", activeChatId, "messages")
-            : collection(db, "chats", activeChatId, "messages");
-
-        await addDoc(collectionRoute, {
-            text: originalText,
+        const route = isGroupChat ? collection(db, "groups", activeChatId, "messages") : collection(db, "chats", activeChatId, "messages");
+        await addDoc(route, {
+            text: basePayloadText,
             type: "text",
             senderId: currentUser.uid,
             senderName: currentUser.name,
@@ -118,40 +123,6 @@ export function initDashboardPage() {
         });
     });
 
-    // --- DYNAMIC VISIBILITY DIRECTORY SYSTEM SEARCH LOOPS ---
-    document.getElementById("search-users").addEventListener("input", (e) => {
-        renderSidebarChannels(e.target.value.trim());
-    });
-
-    // --- PROFILE STATUS UPDATER DISPATCHER ---
-    document.getElementById("update-status-btn").addEventListener("click", async () => {
-        const input = document.getElementById("status-input");
-        if (!input.value.trim()) return;
-        await updateDoc(doc(db, "users", currentUser.uid), { status: input.value.trim() });
-        input.value = "";
-    });
-
-    // --- MULTIUSER CHAT ROOM GENERATOR WORKFLOW ---
-    document.getElementById("create-group-btn").addEventListener("click", async () => {
-        const title = prompt("Assign a functional group chat channel namespace:");
-        if (!title || !title.trim()) return;
-
-        const structuralId = "group_" + Date.now();
-        await setDoc(doc(db, "groups", structuralId), {
-            groupId: structuralId,
-            name: title.trim().toUpperCase() + " (Group)",
-            accountMode: currentUser.accountMode,
-            members: [currentUser.name.toUpperCase()],
-            isGroup: true,
-            createdAt: serverTimestamp()
-        });
-        alert(`Shared space channel group context room "${title}" provisioned successfully.`);
-        renderSidebarChannels("");
-    });
-
-    renderSidebarChannels("");
-
-    // --- LOGOUT ROUTINE ACTION TRIGGER ---
     document.getElementById("logout-btn").addEventListener("click", async () => {
         await updateDoc(doc(db, "users", currentUser.uid), { isOnline: false }).catch(() => {});
         localStorage.clear();
@@ -159,108 +130,101 @@ export function initDashboardPage() {
     });
 }
 
-function renderSidebarChannels(filterKey) {
-    const box = document.getElementById("users-container");
-    if (!box) return;
-    box.innerHTML = "";
+// Security Masked Query Routine Execution Frame
+async function executeTargetSearchQuery(keyword) {
+    const listCanvas = document.getElementById("users-container");
+    if (!listCanvas) return;
+    listCanvas.innerHTML = "";
 
-    const cleanMatch = filterKey.trim().toUpperCase();
+    if (!keyword) {
+        // Strict privacy constraint constraint rule protection enforcement:
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to clear privacy filter tracking paths.</p>`;
+        return;
+    }
 
-    // Pull individual users from collection
-    const userQuery = query(collection(db, "users"), where("accountMode", "==", currentUser.accountMode));
-    getDocs(userQuery).then((snap) => {
-        snap.forEach((userDoc) => {
-            const data = userDoc.data();
-            if (data.uid !== currentUser.uid && (cleanMatch === "" || data.name.toUpperCase().includes(cleanMatch))) {
-                appendChannelRowElement(data, false);
-            }
-        });
-    });
+    // Lookup structural query matches against specific name instances
+    const usersRef = collection(db, "users");
+    const nameMatchQuery = query(usersRef, where("name", "==", keyword), where("accountMode", "==", currentUser.accountMode));
+    
+    const queryResultSnap = await getDocs(nameMatchQuery);
+    
+    if (queryResultSnap.empty) {
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified identity matching "${keyword}" resolved.</p>`;
+        return;
+    }
 
-    // Pull joint multi-user shared context group references
-    const groupQuery = query(collection(db, "groups"), where("accountMode", "==", currentUser.accountMode));
-    getDocs(groupQuery).then((snap) => {
-        snap.forEach((gDoc) => {
-            const data = gDoc.data();
-            if (cleanMatch === "" || data.name.toUpperCase().includes(cleanMatch)) {
-                appendChannelRowElement(data, true);
-            }
-        });
+    queryResultSnap.forEach((userDoc) => {
+        const data = userDoc.data();
+        if (data.uid !== currentUser.uid) {
+            buildSidebarChannelElement(data);
+        }
     });
 }
 
-function appendChannelRowElement(itemData, isGroupObj) {
-    const box = document.getElementById("users-container");
-    const containerRow = document.createElement("div");
-    containerRow.className = "wa-user-item";
+function buildSidebarChannelElement(userData) {
+    const canvas = document.getElementById("users-container");
+    const row = document.createElement("div");
+    row.className = "wa-user-item";
 
-    const isLive = !isGroupObj && itemData.isOnline;
-    const marker = isLive ? "● Active Now" : "Away";
-
-    containerRow.innerHTML = `
+    row.innerHTML = `
         <div class="wa-avatar-container">
-            <div class="wa-avatar" style="background: ${isGroupObj ? '#005c4b' : '#00a884'}">${isGroupObj ? '👥' : itemData.name.charAt(0).toUpperCase()}</div>
+            <div class="wa-avatar" style="background: #00a884">${userData.name.charAt(0).toUpperCase()}</div>
         </div>
         <div class="wa-user-info">
             <div class="wa-user-header-row">
-                <h4>${itemData.name}</h4>
-                <span style="font-size:11px; color:${isLive ? '#00a884':'#8696a0'};">${marker}</span>
+                <h4>${userData.name}</h4>
             </div>
-            <p class="wa-user-status-text">${isGroupObj ? 'Shared context channel message stream' : (itemData.status || 'Available')}</p>
+            <p class="wa-user-status-text">${userData.status || 'Available'}</p>
         </div>
     `;
 
-    containerRow.addEventListener("click", () => {
-        isGroupChat = isGroupObj;
+    row.addEventListener("click", () => {
+        isGroupChat = false;
+        activeChatId = [currentUser.uid, userData.uid].sort().join("_");
+        
+        // Capture initialization execution timestamps down to variable registers
+        activeSessionStartTime = new Date();
+
         document.getElementById("no-chat-selected").classList.add("hidden");
         document.getElementById("active-chat-area").classList.remove("hidden");
-        document.getElementById("chat-header-name").innerText = itemData.name;
+        document.getElementById("chat-header-name").innerText = userData.name;
 
-        if (isGroupObj) {
-            activeChatId = itemData.groupId;
-            bindMessageDataStreams(collection(db, "groups", activeChatId, "messages"));
-        } else {
-            activeChatId = [currentUser.uid, itemData.uid].sort().join("_");
-            setDoc(doc(db, "chats", activeChatId), {
-                chatId: activeChatId,
-                participants: [currentUser.uid, itemData.uid],
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-            bindMessageDataStreams(collection(db, "chats", activeChatId, "messages"));
-        }
+        setDoc(doc(db, "chats", activeChatId), {
+            chatId: activeChatId,
+            participants: [currentUser.uid, userData.uid],
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
     });
 
-    box.appendChild(containerRow);
+    canvas.innerHTML = ""; // Wipe helper notifications containers away entirely
+    canvas.appendChild(row);
 }
 
-function bindMessageDataStreams(collectionReference) {
+function bindLiveIsolatedMessageStreams(collectionReference) {
     if (unsubscribeMessages) unsubscribeMessages();
     const orderedQuery = query(collectionReference, orderBy("createdAt", "asc"));
 
     unsubscribeMessages = onSnapshot(orderedQuery, (snapshot) => {
-        const streamCanvas = document.getElementById("message-stream");
-        if (!streamCanvas) return;
-        streamCanvas.innerHTML = "";
+        const chatBoxWindow = document.getElementById("message-stream");
+        if (!chatBoxWindow) return;
+        chatBoxWindow.innerHTML = "";
 
         snapshot.forEach((msgDoc) => {
             const data = msgDoc.data();
-            const messageBubbleRow = document.createElement("div");
-            messageBubbleRow.className = `wa-message-row ${data.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+            if (!data.createdAt) return;
 
-            let contentBlock = "";
-            if (data.type === "image") {
-                contentBlock = `<img src="${data.fileUrl}" style="max-width:240px; border-radius:6px; cursor:pointer;" onclick="window.open('${data.fileUrl}', '_blank')">`;
-            } else if (data.type === "video") {
-                contentBlock = `<video src="${data.fileUrl}" controls style="max-width:240px; border-radius:6px;"></video>`;
-            } else if (data.type === "document") {
-                contentBlock = `<div style="background:#f0f2f5; padding:8px; border-radius:4px; cursor:pointer;" onclick="window.open('${data.fileUrl}', '_blank')">📄 <span style="font-size:12px; word-break:break-all;">${data.text}</span></div>`;
-            } else {
-                contentBlock = `<p class="bubble-text" style="margin:0;">${data.text}</p>`;
+            const targetMessageTime = data.createdAt.toDate();
+
+            // CONSTRAINT UPGRADE RULE: Only render messages created *after* clicking the profile icon
+            if (targetMessageTime >= activeSessionStartTime) {
+                const bubbleRow = document.createElement("div");
+                bubbleRow.className = `wa-message-row ${data.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
+                bubbleRow.innerHTML = `<div class="wa-bubble"><p class="bubble-text" style="margin:0;">${data.text}</p></div>`;
+                chatBoxWindow.appendChild(bubbleRow);
             }
-
-            messageBubbleRow.innerHTML = `<div class="wa-bubble">${contentBlock}</div>`;
-            streamCanvas.appendChild(messageBubbleRow);
         });
-        streamCanvas.scrollTop = streamCanvas.scrollHeight;
+        chatBoxWindow.scrollTop = chatBoxWindow.scrollHeight;
     });
 }
