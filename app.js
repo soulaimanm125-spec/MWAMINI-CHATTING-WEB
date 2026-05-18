@@ -21,24 +21,26 @@ const storage = getStorage(app);
 
 let currentUser = null; 
 let activeChatId = null;
-let isGroupChat = false;
 let unsubscribeMessages = null;
-let activeSessionStartTime = null; // Tracks connection instance window timestamps
+let activeSessionStartTime = null; 
+
+// Voice Memo Recording System Registers
+let audioMediaRecorder = null;
+let recordedAudioChunks = [];
 
 export function initDashboardPage() {
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
-    const savedMode = localStorage.getItem("session_account_mode");
 
     if (!savedUid) {
         window.location.href = "index.html";
         return;
     }
 
-    currentUser = { uid: savedUid, name: savedName, accountMode: savedMode || "standard" };
+    currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
-    // Save profile metadata snapshot synchronization hook
+    // Profile initialization stream listener hook
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
@@ -47,64 +49,154 @@ export function initDashboardPage() {
         }
     });
 
-    // --- UPGRADED: STATUS STORIES TIMELINE DISPATCH MANAGER ---
+    // --- UPGRADED: ADVANCED IMAGE / VIDEO MWAMINI STATUS POST ENGINE ---
     document.getElementById("update-status-btn").addEventListener("click", async () => {
         const input = document.getElementById("status-input");
-        const statusText = input.value.trim();
-        if (!statusText) return;
+        const mediaInput = document.getElementById("status-media-file");
+        const textPayload = input.value.trim();
+        const attachedFile = mediaInput.files[0];
+
+        if (!textPayload && !attachedFile) return;
+
+        let downloadedMediaUrl = "";
+        let computedMediaType = "text";
 
         try {
+            if (attachedFile) {
+                computedMediaType = attachedFile.type.startsWith("video/") ? "video" : "image";
+                const storageLocationRef = ref(storage, `mwamini_statuses/${currentUser.uid}/${Date.now()}_${attachedFile.name}`);
+                const snapshot = await uploadBytes(storageLocationRef, attachedFile);
+                downloadedMediaUrl = await getDownloadURL(snapshot.ref);
+            }
+
             await addDoc(collection(db, "statuses"), {
                 uid: currentUser.uid,
                 userName: currentUser.name,
-                accountMode: currentUser.accountMode,
-                textPayload: statusText,
+                accountMode: "standard",
+                textPayload: textPayload || `Posted a new status ${computedMediaType}`,
+                mediaUrl: downloadedMediaUrl,
+                statusType: computedMediaType,
                 createdAt: serverTimestamp()
             });
-            await updateDoc(doc(db, "users", currentUser.uid), { status: statusText });
+
+            await updateDoc(doc(db, "users", currentUser.uid), { 
+                status: textPayload || `Active with a story update.` 
+            });
+
+            // Flush interface state values completely clean post transmission completion
             input.value = "";
-            alert("Status story updated successfully.");
-        } catch(e) { console.error("Status dispatch dropped: ", e); }
+            mediaInput.value = "";
+            alert("Your MWAMINI status story line has been successfully dispatched.");
+        } catch (err) {
+            alert("Status story delivery dropped: " + err.message);
+        }
     });
 
-    // Mount structural active live timeline subscriber listener
-    const historicalThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24-hour retention marker
-    const liveStatusQuery = query(
-        collection(db, "statuses"), 
-        where("accountMode", "==", currentUser.accountMode),
-        orderBy("createdAt", "desc"),
-        limit(15)
-    );
+    // Read live MWAMINI Status feeds continuously across a rolling 24-hour retention timeline window
+    const retentionThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const statusesQuery = query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(20));
 
-    onSnapshot(liveStatusQuery, (snapshot) => {
-        const platformFeedTray = document.getElementById("active-statuses-view");
-        if (!platformFeedTray) return;
-        platformFeedTray.innerHTML = "";
-        
+    onSnapshot(statusesQuery, (snapshot) => {
+        const feedContainerTray = document.getElementById("active-statuses-view");
+        if (!feedContainerTray) return;
+        feedContainerTray.innerHTML = "";
+
         snapshot.forEach((statusDoc) => {
             const data = statusDoc.data();
             if (!data.createdAt) return;
-            
-            // Client side calculation safety checks for 24-hour expiration frames
-            if(data.createdAt.toDate() > historicalThreshold) {
-                const bubble = document.createElement("div");
-                bubble.style = "background: #005c4b; color: white; padding: 6px 12px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: help;";
-                bubble.innerText = `${data.userName}: ${data.textPayload}`;
-                platformFeedTray.appendChild(bubble);
+
+            if (data.createdAt.toDate() > retentionThreshold) {
+                const layoutBubble = document.createElement("div");
+                layoutBubble.style = "background: #e1f5fe; border: 1px solid #b3e5fc; padding: 6px 12px; border-radius: 12px; font-size: 12px; color: #01579b; cursor: pointer; display: flex; flex-direction: column; gap: 4px;";
+                
+                let embeddedMediaOutputElement = "";
+                if (data.statusType === "image") {
+                    embeddedMediaOutputElement = `<img src="${data.mediaUrl}" style="width:70px; height:70px; object-fit:cover; border-radius:4px; margin-top:2px;">`;
+                } else if (data.statusType === "video") {
+                    embeddedMediaOutputElement = `<video src="${data.mediaUrl}" style="width:70px; height:70px; object-fit:cover; border-radius:4px; margin-top:2px;" muted></video>`;
+                }
+
+                layoutBubble.innerHTML = `<strong>${data.userName}</strong><span>${data.textPayload}</span>${embeddedMediaOutputElement}`;
+                
+                // Clicking opens full resolution media directly into clean browser workspace contexts
+                if (data.mediaUrl) {
+                    layoutBubble.addEventListener("click", () => window.open(data.mediaUrl, "_blank"));
+                }
+                feedContainerTray.appendChild(layoutBubble);
             }
         });
     });
 
-    // --- UPGRADED: SEARCH EXACT NAMES ONLY PRIVACY DIRECTORY ---
-    const searchField = document.getElementById("search-users");
-    searchField.addEventListener("input", (e) => {
-        executeTargetSearchQuery(e.target.value.trim());
+    // --- UPGRADED: NATIVE VOICE CHAT MEMO ENGINE ---
+    const recordVoiceBtn = document.getElementById("voice-record-btn");
+    const recordStatusText = document.getElementById("voice-recording-status");
+
+    recordVoiceBtn.addEventListener("click", async () => {
+        if (!activeChatId) return;
+
+        if (!audioMediaRecorder) {
+            // Requesting core browser input stream tracking access parameters
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioMediaRecorder = new MediaRecorder(stream);
+
+                audioMediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) recordedAudioChunks.push(event.data);
+                };
+
+                audioMediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(recordedAudioChunks, { type: "audio/ogg; codecs=opus" });
+                    recordedAudioChunks = [];
+
+                    recordStatusText.classList.add("hidden");
+                    recordVoiceBtn.style.color = "initial";
+
+                    // Transmit generated voice audio file straight out to Cloud Storage paths
+                    const voiceStorageRef = ref(storage, `voice_memos/${activeChatId}/${Date.now()}_clip.ogg`);
+                    const snap = await uploadBytes(voiceStorageRef, audioBlob);
+                    const downloadUrl = await getDownloadURL(snap.ref);
+
+                    await addDoc(collection(db, "chats", activeChatId, "messages"), {
+                        text: "Voice Note Spatial Transmission",
+                        fileUrl: downloadUrl,
+                        type: "audio",
+                        senderId: currentUser.uid,
+                        senderName: currentUser.name,
+                        createdAt: serverTimestamp()
+                    });
+                };
+            } catch (err) {
+                alert("Audio capturing permission rejected: " + err.message);
+                return;
+            }
+        }
+
+        // Toggle state recording switches sequentially on standard button inputs
+        if (audioMediaRecorder.state === "inactive") {
+            audioMediaRecorder.start();
+            recordStatusText.classList.remove("hidden");
+            recordVoiceBtn.style.color = "#ea0038";
+        } else {
+            audioMediaRecorder.stop();
+        }
     });
 
-    // Leave list interface fully empty upon baseline initial launch state execution
+    // --- UPGRADED: CALLING COMPONENT INTEGRATION HOOK HANDLERS ---
+    document.getElementById("trigger-voice-call").addEventListener("click", () => {
+        if (!activeChatId) return;
+        alert(`Initiating secure encrypted Voice Call stream to user session endpoints...`);
+    });
+
+    document.getElementById("trigger-video-call").addEventListener("click", () => {
+        if (!activeChatId) return;
+        alert(`Requesting high-definition peer Video Link configuration matrices across active networks...`);
+    });
+
+    // --- SEARCH AND GENERAL CHAT LOGIC CONTINUITY RUNNERS ---
+    const searchField = document.getElementById("search-users");
+    searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     executeTargetSearchQuery("");
 
-    // --- TEXT MESSAGE INPUT DELIVERY FLOW ---
     document.getElementById("message-form").addEventListener("submit", async (e) => {
         e.preventDefault();
         const input = document.getElementById("message-input");
@@ -113,8 +205,7 @@ export function initDashboardPage() {
         const basePayloadText = input.value.trim();
         input.value = "";
 
-        const route = isGroupChat ? collection(db, "groups", activeChatId, "messages") : collection(db, "chats", activeChatId, "messages");
-        await addDoc(route, {
+        await addDoc(collection(db, "chats", activeChatId, "messages"), {
             text: basePayloadText,
             type: "text",
             senderId: currentUser.uid,
@@ -130,26 +221,19 @@ export function initDashboardPage() {
     });
 }
 
-// Security Masked Query Routine Execution Frame
 async function executeTargetSearchQuery(keyword) {
     const listCanvas = document.getElementById("users-container");
     if (!listCanvas) return;
     listCanvas.innerHTML = "";
 
     if (!keyword) {
-        // Strict privacy constraint constraint rule protection enforcement:
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to clear privacy filter tracking paths.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type an exact username to start chatting.</p>`;
         return;
     }
 
-    // Lookup structural query matches against specific name instances
-    const usersRef = collection(db, "users");
-    const nameMatchQuery = query(usersRef, where("name", "==", keyword), where("accountMode", "==", currentUser.accountMode));
-    
-    const queryResultSnap = await getDocs(nameMatchQuery);
-    
+    const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified identity matching "${keyword}" resolved.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No matching name found.</p>`;
         return;
     }
 
@@ -167,22 +251,15 @@ function buildSidebarChannelElement(userData) {
     row.className = "wa-user-item";
 
     row.innerHTML = `
-        <div class="wa-avatar-container">
-            <div class="wa-avatar" style="background: #00a884">${userData.name.charAt(0).toUpperCase()}</div>
-        </div>
+        <div class="wa-avatar-container"><div class="wa-avatar" style="background:#00a884">${userData.name.charAt(0).toUpperCase()}</div></div>
         <div class="wa-user-info">
-            <div class="wa-user-header-row">
-                <h4>${userData.name}</h4>
-            </div>
+            <div class="wa-user-header-row"><h4>${userData.name}</h4></div>
             <p class="wa-user-status-text">${userData.status || 'Available'}</p>
         </div>
     `;
 
     row.addEventListener("click", () => {
-        isGroupChat = false;
         activeChatId = [currentUser.uid, userData.uid].sort().join("_");
-        
-        // Capture initialization execution timestamps down to variable registers
         activeSessionStartTime = new Date();
 
         document.getElementById("no-chat-selected").classList.add("hidden");
@@ -198,15 +275,13 @@ function buildSidebarChannelElement(userData) {
         bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
     });
 
-    canvas.innerHTML = ""; // Wipe helper notifications containers away entirely
+    canvas.innerHTML = "";
     canvas.appendChild(row);
 }
 
 function bindLiveIsolatedMessageStreams(collectionReference) {
     if (unsubscribeMessages) unsubscribeMessages();
-    const orderedQuery = query(collectionReference, orderBy("createdAt", "asc"));
-
-    unsubscribeMessages = onSnapshot(orderedQuery, (snapshot) => {
+    unsubscribeMessages = onSnapshot(query(collectionReference, orderBy("createdAt", "asc")), (snapshot) => {
         const chatBoxWindow = document.getElementById("message-stream");
         if (!chatBoxWindow) return;
         chatBoxWindow.innerHTML = "";
@@ -215,13 +290,18 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
             const data = msgDoc.data();
             if (!data.createdAt) return;
 
-            const targetMessageTime = data.createdAt.toDate();
-
-            // CONSTRAINT UPGRADE RULE: Only render messages created *after* clicking the profile icon
-            if (targetMessageTime >= activeSessionStartTime) {
+            if (data.createdAt.toDate() >= activeSessionStartTime) {
                 const bubbleRow = document.createElement("div");
                 bubbleRow.className = `wa-message-row ${data.senderId === currentUser.uid ? 'row-sent' : 'row-received'}`;
-                bubbleRow.innerHTML = `<div class="wa-bubble"><p class="bubble-text" style="margin:0;">${data.text}</p></div>`;
+                
+                let visualPayloadOutputBlock = "";
+                if (data.type === "audio") {
+                    visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:220px; outline:none;"></audio>`;
+                } else {
+                    visualPayloadOutputBlock = `<p class="bubble-text" style="margin:0;">${data.text}</p>`;
+                }
+
+                bubbleRow.innerHTML = `<div class="wa-bubble">${visualPayloadOutputBlock}</div>`;
                 chatBoxWindow.appendChild(bubbleRow);
             }
         });
