@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MWAMINI CHAT WEB - Workspace</title>
+    <title>MWAMINI CHAT WEB - Workspace Upgrade</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #00a884; background-image: linear-gradient(180deg, #00a884 0%, #008069 100%); height: 100vh; display: flex; padding: 15px; overflow: hidden; }
         
         .app-window { display: flex; width: 100%; max-width: 1600px; height: 100%; margin: 0 auto; background-color: #ffffff; box-shadow: 0 6px 24px rgba(0,0,0,0.15); border-radius: 12px; overflow: hidden; }
         
-        /* Left Navigation Control Side */
+        /* Left Panel */
         .sidebar-left { width: 30%; min-width: 340px; max-width: 400px; height: 100%; border-right: 1px solid #e9edef; display: flex; flex-direction: column; background: #ffffff; }
         .sidebar-header { height: 64px; background: #f0f2f5; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #e9edef; }
         
-        /* Room Creator Box */
+        /* Room Creator Panel */
         .group-creation-box { padding: 14px; background: #f8f9fa; border-bottom: 1px solid #e9edef; display: flex; flex-direction: column; gap: 6px; }
         .group-creation-box label { font-size: 10px; font-weight: 700; color: #008069; letter-spacing: 0.5px; }
         .group-creation-box input, .group-creation-box select { width: 100%; padding: 7px 10px; border: 1px solid #e1e4e6; border-radius: 6px; font-size: 13px; outline: none; }
@@ -24,15 +24,14 @@
         .search-box input { width: 100%; padding: 8px 12px 8px 36px; background: #f0f2f5; border: none; border-radius: 8px; font-size: 13px; outline: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23667781"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'); background-repeat: no-repeat; background-position: 12px center; }
         .user-list { flex: 1; overflow-y: auto; background: #ffffff; }
         
-        /* Center Chat Display Field */
+        /* Central Workspace */
         .chat-panel { flex: 1; height: 100%; display: flex; flex-direction: column; background: #efeae2; position: relative; }
         
-        /* Right Utilities Sidebar (Eliminates Chaos) */
+        /* Right Utilities Panel */
         .sidebar-right { width: 28%; min-width: 280px; max-width: 360px; height: 100%; border-left: 1px solid #e9edef; background: #f8f9fa; display: flex; flex-direction: column; }
         .right-header { height: 64px; background: #f0f2f5; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #e9edef; font-weight: 600; color: #111b21; }
         .right-body { padding: 16px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; flex: 1; }
 
-        /* Welcome Page Styles */
         .welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px; background: #f8f9fa; }
         .welcome-hero-art { font-size: 70px; margin-bottom: 15px; }
         .welcome-title { color: #111b21; font-size: 28px; margin-bottom: 10px; }
@@ -41,7 +40,6 @@
         .chat-area { display: flex; flex-direction: column; height: 100%; }
         .hidden { display: none !important; }
         
-        /* Status Tags */
         .room-meta-info { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #008069; letter-spacing: 0.8px; margin-bottom: 2px; display: block; }
         .status-badge { font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
         .status-online { background: #e8f5e9; color: #1b5e20; }
@@ -136,15 +134,15 @@
             <div class="right-body">
                 <div class="utility-card">
                     <h4>Add Colleague to Room</h4>
-                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Directly register a member profile inside this channel thread pipeline.</p>
+                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Directly provision access rules for another user inside this chatroom.</p>
                     <select id="utility-member-dropdown" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; font-size:13px;"></select>
                     <button id="btn-add-member-action" class="btn-action">Provision Access</button>
                 </div>
 
                 <div class="utility-card">
-                    <h4>Share Secure Invite</h4>
-                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Generate an entry verification card string package for remote distribution.</p>
-                    <button id="btn-generate-invite" class="btn-action" style="background: #00a884;">Generate Workspace Key</button>
+                    <h4>Share Secure Invite Link</h4>
+                    <p style="font-size: 12px; color: #667781; margin-bottom: 8px;">Generate an entry invitation string verification package for this room.</p>
+                    <button id="btn-generate-invite" class="btn-action" style="background: #00a884;">Generate Workspace Link</button>
                     <div id="invite-link-display" class="share-link-box hidden"></div>
                 </div>
             </div>
