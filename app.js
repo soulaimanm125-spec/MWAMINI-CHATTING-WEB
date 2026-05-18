@@ -26,9 +26,9 @@ let activeSessionStartTime = null;
 
 let audioMediaRecorder = null;
 let recordedAudioChunks = [];
+const unreadNotificationMap = new Map();
 
 function initDashboardPage() {
-    // RUNTIME PROTECTION: Prevents crash loops if scripts are cached on index.html
     if (!document.getElementById("users-container") && !document.getElementById("message-form")) {
         console.log("Welcome view active. Core engines operating cleanly.");
         return; 
@@ -43,7 +43,15 @@ function initDashboardPage() {
     }
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
+    
+    // Set user online upon entry
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
+
+    // Manage online status before the tab/window is closed
+    window.addEventListener("beforeunload", () => {
+        navigator.sendBeacon;
+        updateDoc(doc(db, "users", currentUser.uid), { isOnline: false });
+    });
 
     onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
         if (docSnap.exists()) {
@@ -53,7 +61,91 @@ function initDashboardPage() {
         }
     });
 
-    // --- STATUS SYSTEM ---
+    // --- CUSTOM BACKGROUND CHANGER ---
+    const bgChanger = document.getElementById("background-changer");
+    if (bgChanger) {
+        bgChanger.addEventListener("change", (e) => {
+            const chosenColor = e.target.value;
+            const messageStream = document.getElementById("message-stream");
+            if (messageStream) {
+                messageStream.style.backgroundColor = chosenColor;
+                // Readability adjustments for dark themes
+                messageStream.style.color = (chosenColor === "#263238") ? "#ffffff" : "#000000";
+            }
+        });
+    }
+
+    // --- PROTECTED/PUBLIC GROUP CHAT CREATION ---
+    const groupTypeSelect = document.getElementById("group-type-select");
+    const groupPassField = document.getElementById("group-password-input");
+    const createGroupBtn = document.getElementById("create-group-btn");
+
+    if (groupTypeSelect && groupPassField) {
+        groupTypeSelect.addEventListener("change", (e) => {
+            if (e.target.value === "protected") {
+                groupPassField.classList.remove("hidden");
+            } else {
+                groupPassField.classList.add("hidden");
+            }
+        });
+    }
+
+    if (createGroupBtn) {
+        createGroupBtn.addEventListener("click", async () => {
+            const groupNameInput = document.getElementById("group-name-input");
+            const name = groupNameInput ? groupNameInput.value.trim() : "";
+            const type = groupTypeSelect ? groupTypeSelect.value : "public";
+            const password = groupPassField ? groupPassField.value.trim() : "";
+
+            if (!name) {
+                alert("Please provide a name for the chat group room.");
+                return;
+            }
+            if (type === "protected" && !password) {
+                alert("Protected groups require a secure password configuration.");
+                return;
+            }
+
+            try {
+                const groupRef = doc(collection(db, "users")); // Generate room ID mapping
+                await setDoc(groupRef, {
+                    uid: groupRef.id,
+                    name: `[GRP] ${name}`,
+                    status: `Type: ${type.toUpperCase()} Group Channel.`,
+                    isGroup: true,
+                    groupType: type,
+                    groupPassword: password,
+                    isOnline: true
+                });
+                alert(`Group chat room "${name}" compiled successfully! Search it to connect.`);
+                if(groupNameInput) groupNameInput.value = "";
+                if(groupPassField) groupPassField.value = "";
+            } catch (err) {
+                alert("Failed to build room collection: " + err.message);
+            }
+        });
+    }
+
+    // --- REAL-TIME GLOBAL UNREAD NOTIFICATION TRAFFIC ---
+    onSnapshot(collection(db, "chats"), (snapshot) => {
+        snapshot.forEach((chatDoc) => {
+            const data = chatDoc.data();
+            if (data.participants && data.participants.includes(currentUser.uid)) {
+                // Listen to nested channels
+                onSnapshot(query(collection(db, "chats", chatDoc.id, "messages"), orderBy("createdAt", "desc"), limit(1)), (msgSnap) => {
+                    msgSnap.forEach((mDoc) => {
+                        const mData = mDoc.data();
+                        if (mData.senderId !== currentUser.uid && chatDoc.id !== activeChatId) {
+                            unreadNotificationMap.set(chatDoc.id, true);
+                            triggerSidebarNotificationBadge(chatDoc.id);
+                        }
+                    });
+                });
+            }
+        });
+    });
+
+    // --- STORIES FEED WINDOW ---
     const updateStatusBtn = document.getElementById("update-status-btn");
     if (updateStatusBtn) {
         updateStatusBtn.addEventListener("click", async () => {
@@ -123,7 +215,7 @@ function initDashboardPage() {
         });
     });
 
-    // --- VOICE MEMO CAPTURE ---
+    // --- VOICE RECORDER ENGINE ---
     const recordVoiceBtn = document.getElementById("voice-record-btn");
     const recordStatusText = document.getElementById("voice-recording-status");
 
@@ -177,14 +269,14 @@ function initDashboardPage() {
         document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting peer video layout..."));
     }
 
-    // --- USER SEARCH ---
+    // --- DIRECTORY SEARCH CONTROLS ---
     const searchField = document.getElementById("search-users");
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
     executeTargetSearchQuery("");
 
-    // --- MESSAGE SENDING ---
+    // --- MESSAGE DISPATCH CAPTURE ---
     const messageForm = document.getElementById("message-form");
     if (messageForm) {
         messageForm.addEventListener("submit", async (e) => {
@@ -221,13 +313,14 @@ async function executeTargetSearchQuery(keyword) {
     listCanvas.innerHTML = "";
 
     if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name to open a message feed.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name or a chat group to open a feed.</p>`;
         return;
     }
 
+    // Dynamic presence lookup: checks both users and groups
     const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No identity matching that name has registered yet.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified users or groups found matching that name.</p>`;
         return;
     }
 
@@ -242,29 +335,61 @@ async function executeTargetSearchQuery(keyword) {
 function buildSidebarChannelElement(userData) {
     const canvas = document.getElementById("users-container");
     const row = document.createElement("div");
-    row.style = "display:flex; align-items:center; gap:10px; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
+    row.id = `sidebar-row-${userData.uid}`;
+    row.style = "display:flex; align-items:center; justify-content:space-between; padding:12px; cursor:pointer; border-bottom:1px solid #f0f2f5; transition: background 0.2s;";
     row.onmouseenter = () => row.style.backgroundColor = "#f5f6f6";
     row.onmouseleave = () => row.style.backgroundColor = "transparent";
 
+    // Dynamic Online Status Badge Template
+    const presenceBadgeClass = userData.isOnline ? "status-online" : "status-offline";
+    const presenceText = userData.isOnline ? "online" : "offline";
+
     row.innerHTML = `
-        <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${userData.name.charAt(0).toUpperCase()}</div>
-        <div style="flex: 1;">
-            <h4 style="margin:0; font-size:14px; color:#111b21; font-weight: 600;">${userData.name}</h4>
-            <p style="margin:0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;">${userData.status || 'Available'}</p>
+        <div style="display:flex; align-items:center; gap:10px; flex:1;">
+            <div style="background:#00a884; color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:16px;">${userData.name.charAt(0).toUpperCase()}</div>
+            <div style="flex: 1;">
+                <h4 style="margin:0; font-size:14px; color:#111b21; font-weight: 600; display:flex; align-items:center;">
+                    ${userData.name}
+                    <span class="status-badge ${presenceBadgeClass}">${presenceText}</span>
+                </h4>
+                <p style="margin:0; font-size:12px; color:#667781; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${userData.status || 'Available'}</p>
+            </div>
         </div>
+        <div id="badge-holder-${userData.uid}"></div>
     `;
 
     row.addEventListener("click", () => {
-        activeChatId = [currentUser.uid, userData.uid].sort().join("_");
+        // CHALLENGE CHECK: Handle password gate validation if selecting a protected group
+        if (userData.isGroup && userData.groupType === "protected") {
+            const enteredPassword = prompt(`"${userData.name}" is a protected channel room. Please type the group password to connect:`);
+            if (enteredPassword !== userData.groupPassword) {
+                alert("Access authorization rejected: Invalid group password token.");
+                return;
+            }
+        }
+
+        activeChatId = userData.isGroup ? userData.uid : [currentUser.uid, userData.uid].sort().join("_");
         activeSessionStartTime = new Date();
+
+        // Clear notification states cleanly upon selection
+        unreadNotificationMap.delete(activeChatId);
+        const badgeElement = document.getElementById(`badge-holder-${userData.uid}`);
+        if(badgeElement) badgeElement.innerHTML = "";
 
         document.getElementById("no-chat-selected").classList.add("hidden");
         document.getElementById("active-chat-area").classList.remove("hidden");
         document.getElementById("chat-header-name").innerText = userData.name;
+        
+        // Update presence header badge dynamically
+        const headerBadge = document.getElementById("chat-header-presence-badge");
+        if (headerBadge) {
+            headerBadge.className = `status-badge ${presenceBadgeClass}`;
+            headerBadge.innerText = presenceText;
+        }
 
         setDoc(doc(db, "chats", activeChatId), {
             chatId: activeChatId,
-            participants: [currentUser.uid, userData.uid],
+            participants: userData.isGroup ? [currentUser.uid] : [currentUser.uid, userData.uid],
             updatedAt: serverTimestamp()
         }, { merge: true });
 
@@ -272,8 +397,20 @@ function buildSidebarChannelElement(userData) {
     });
 
     if(canvas) {
-        canvas.innerHTML = "";
         canvas.appendChild(row);
+        // Persist notification visibility check on re-renders
+        if (unreadNotificationMap.get(activeChatId)) {
+            triggerSidebarNotificationBadge(activeChatId);
+        }
+    }
+}
+
+function triggerSidebarNotificationBadge(chatId) {
+    // Locate row components based on ID mapping strategy
+    const targetedRowId = chatId.includes("_") ? chatId.split("_").find(id => id !== currentUser.uid) : chatId;
+    const badgeContainer = document.getElementById(`badge-holder-${targetedRowId}`);
+    if (badgeContainer) {
+        badgeContainer.innerHTML = `<span class="unread-indicator">NEW</span>`;
     }
 }
 
@@ -297,7 +434,10 @@ function bindLiveIsolatedMessageStreams(collectionReference) {
                 if (data.type === "audio") {
                     visualPayloadOutputBlock = `<audio src="${data.fileUrl}" controls style="max-width:240px; outline:none;"></audio>`;
                 } else {
-                    visualPayloadOutputBlock = `<p style="margin:0; font-size:14.5px; white-space:pre-wrap; line-height:1.4; color:#111b21;">${data.text}</p>`;
+                    visualPayloadOutputBlock = `
+                        <div style="font-size:11px; font-weight:bold; color:#005c4b; margin-bottom:2px;">${data.senderName}</div>
+                        <p style="margin:0; font-size:14.5px; white-space:pre-wrap; line-height:1.4; color:#111b21;">${data.text}</p>
+                    `;
                 }
 
                 bubbleRow.innerHTML = `<div style="background:${isMe ? '#d9fdd3' : '#ffffff'}; padding:8px 12px; border-radius:8px; box-shadow:0 1px 1px rgba(0,0,0,0.08); max-width:65%; word-wrap:break-word;">${visualPayloadOutputBlock}</div>`;
