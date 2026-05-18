@@ -43,6 +43,8 @@ function initDashboardPage() {
     }
 
     currentUser = { uid: savedUid, name: savedName, accountMode: "standard" };
+    
+    // Safely set user online
     updateDoc(doc(db, "users", currentUser.uid), { isOnline: true }).catch(() => {});
 
     // Live monitor status updates on current user account profile
@@ -113,7 +115,7 @@ function initDashboardPage() {
                 alert(`Global Chat Room "${title}" created successfully! It is now permanently visible to all members.`);
                 if(groupNameInput) groupNameInput.value = "";
                 if(groupPasswordField) groupPasswordField.value = "";
-                executeTargetSearchQuery(""); // Refresh sidebar instantly
+                executeTargetSearchQuery(""); 
             } catch (err) {
                 alert("Room composition failure: " + err.message);
             }
@@ -260,7 +262,7 @@ function initDashboardPage() {
     if (searchField) {
         searchField.addEventListener("input", (e) => executeTargetSearchQuery(e.target.value.trim()));
     }
-    executeTargetSearchQuery(""); // Fire core initial visibility sequence out of the box
+    executeTargetSearchQuery(""); 
 
     // --- MESSAGE FORM POST SUBMISSIONS ---
     const messageForm = document.getElementById("message-form");
@@ -293,24 +295,33 @@ function initDashboardPage() {
     }
 }
 
+// Global active snapshot variable to prevent memory leaks
+let groupUnsubscribeInstance = null;
+
 async function executeTargetSearchQuery(keyword) {
     const listCanvas = document.getElementById("users-container");
     if (!listCanvas) return;
     listCanvas.innerHTML = "";
 
-    // PERMANENT VISIBILITY RULE IMPLEMENTED:
-    // If the user hasn't typed anything, fetch and permanently show ALL created public and protected chat groups automatically.
+    if (groupUnsubscribeInstance) {
+        groupUnsubscribeInstance();
+        groupUnsubscribeInstance = null;
+    }
+
+    // FIXED: Changed static getDocs to an active onSnapshot listener
     if (!keyword) {
-        const globalGroupsSnap = await getDocs(query(collection(db, "users"), where("isGroup", "==", true)));
-        if(globalGroupsSnap.empty) {
-            listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:20px; margin:0;">No active group rooms exist. Build a room above to launch a global channel thread.</p>`;
-            return;
-        }
-        globalGroupsSnap.forEach((doc) => buildSidebarChannelRowElement(doc.data()));
+        const groupQuery = query(collection(db, "users"), where("isGroup", "==", true));
+        groupUnsubscribeInstance = onSnapshot(groupQuery, (snapshot) => {
+            listCanvas.innerHTML = ""; 
+            if (snapshot.empty) {
+                listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:20px; margin:0;">No active group rooms exist. Build a room above to launch a global channel thread.</p>`;
+                return;
+            }
+            snapshot.forEach((doc) => buildSidebarChannelRowElement(doc.data()));
+        });
         return;
     }
 
-    // Otherwise, parse direct matched key phrases to load users or targeted chat titles
     const standardKeywordSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (standardKeywordSnap.empty) {
         listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:20px; margin:0;">No registered users or groups found matching that name sequence.</p>`;
@@ -327,14 +338,21 @@ async function executeTargetSearchQuery(keyword) {
 
 function buildSidebarChannelRowElement(userData) {
     const canvas = document.getElementById("users-container");
-    const rowElement = document.createElement("div");
+    
+    // Avoid appending duplicates if elements exist
+    let rowElement = document.getElementById(`sidebar-row-${userData.uid}`);
+    if (!rowElement) {
+        rowElement = document.createElement("div");
+        rowElement.id = `sidebar-row-${userData.uid}`;
+        if(canvas) canvas.appendChild(rowElement);
+    }
+    
     rowElement.style = "display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; border-bottom:1px solid #f8f9fa; transition: background 0.1s;";
     rowElement.onmouseenter = () => rowElement.style.backgroundColor = "#f0f2f5";
     rowElement.onmouseleave = () => rowElement.style.backgroundColor = "transparent";
 
     const isRoomChannel = userData.isGroup === true;
     
-    // Assign structural indicator badges depending on privacy configurations
     let badgeClass = userData.isOnline ? "status-online" : "status-offline";
     let statusTextLabel = userData.isOnline ? "online" : "offline";
 
@@ -359,8 +377,11 @@ function buildSidebarChannelRowElement(userData) {
         <div id="badge-holder-${userData.uid}" style="flex-shrink:0; padding-left:10px;"></div>
     `;
 
-    rowElement.addEventListener("click", () => {
-        // ENFORCE RUNTIME INTERACTIVE PASSWORD REQUEST CHALLENGE GATE
+    // Remove old listeners before setting a new one
+    const newRowElement = rowElement.cloneNode(true);
+    if(rowElement.parentNode) rowElement.parentNode.replaceChild(newRowElement, rowElement);
+
+    newRowElement.addEventListener("click", () => {
         if (isRoomChannel && userData.groupType === "protected") {
             const clientAttemptToken = prompt(`Security Verification required.\nEnter entry password code to access the channel thread "${userData.name}":`);
             if (clientAttemptToken !== userData.groupPassword) {
@@ -372,7 +393,6 @@ function buildSidebarChannelRowElement(userData) {
         activeChatId = userData.uid;
         activeSessionStartTime = new Date();
 
-        // Expunge pending notification triggers
         trackedUnreadNotificationSet.delete(activeChatId);
         const dynamicAlertWidgetRef = document.getElementById(`badge-holder-${userData.uid}`);
         if(dynamicAlertWidgetRef) dynamicAlertWidgetRef.innerHTML = "";
@@ -396,11 +416,8 @@ function buildSidebarChannelRowElement(userData) {
         bindLiveIsolatedMessageStreams(collection(db, "chats", activeChatId, "messages"));
     });
 
-    if(canvas) {
-        canvas.appendChild(rowElement);
-        if (trackedUnreadNotificationSet.has(userData.uid)) {
-            renderSidebarUnreadAlertBadge(userData.uid);
-        }
+    if (trackedUnreadNotificationSet.has(userData.uid)) {
+        renderSidebarUnreadAlertBadge(userData.uid);
     }
 }
 
