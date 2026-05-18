@@ -28,13 +28,17 @@ let audioMediaRecorder = null;
 let recordedAudioChunks = [];
 
 function initDashboardPage() {
+    // RUNTIME PROTECTION: Prevents crash loops if scripts are cached on index.html
+    if (!document.getElementById("users-container") && !document.getElementById("message-form")) {
+        console.log("Welcome view active. Core engines operating cleanly.");
+        return; 
+    }
+
     const savedUid = localStorage.getItem("session_uid");
     const savedName = localStorage.getItem("session_name");
 
     if (!savedUid) {
-        if (window.location.pathname.includes("dashboard.html")) {
-            window.location.href = "index.html";
-        }
+        window.location.href = "index.html";
         return; 
     }
 
@@ -167,10 +171,10 @@ function initDashboardPage() {
     }
 
     if(document.getElementById("trigger-voice-call")) {
-        document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating secure encrypted Voice Call stream..."));
+        document.getElementById("trigger-voice-call").addEventListener("click", () => alert("Initiating voice stream..."));
     }
     if(document.getElementById("trigger-video-call")) {
-        document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting high-definition peer Video Link configuration..."));
+        document.getElementById("trigger-video-call").addEventListener("click", () => alert("Requesting peer video layout..."));
     }
 
     // --- USER SEARCH ---
@@ -217,13 +221,13 @@ async function executeTargetSearchQuery(keyword) {
     listCanvas.innerHTML = "";
 
     if (!keyword) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Type a username to start a chat thread.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#667781; text-align:center; padding:15px; margin:0;">Search a friend's full name to open a message feed.</p>`;
         return;
     }
 
     const queryResultSnap = await getDocs(query(collection(db, "users"), where("name", "==", keyword)));
     if (queryResultSnap.empty) {
-        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No verified identity found matching that name.</p>`;
+        listCanvas.innerHTML = `<p style="font-size:12px; color:#ea0038; text-align:center; padding:15px; margin:0;">No identity matching that name has registered yet.</p>`;
         return;
     }
 
@@ -254,9 +258,9 @@ function buildSidebarChannelElement(userData) {
         activeChatId = [currentUser.uid, userData.uid].sort().join("_");
         activeSessionStartTime = new Date();
 
-        if(document.getElementById("no-chat-selected")) document.getElementById("no-chat-selected").classList.add("hidden");
-        if(document.getElementById("active-chat-area")) document.getElementById("active-chat-area").classList.remove("hidden");
-        if(document.getElementById("chat-header-name")) document.getElementById("chat-header-name").innerText = userData.name;
+        document.getElementById("no-chat-selected").classList.add("hidden");
+        document.getElementById("active-chat-area").classList.remove("hidden");
+        document.getElementById("chat-header-name").innerText = userData.name;
 
         setDoc(doc(db, "chats", activeChatId), {
             chatId: activeChatId,
