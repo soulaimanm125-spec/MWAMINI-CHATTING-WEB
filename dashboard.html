@@ -20,17 +20,23 @@
         .chat-area { display: flex; flex-direction: column; height: 100%; z-index: 2; }
         .hidden { display: none !important; }
         
-        /* New Badges & Indicators */
+        /* Badges & Indicators */
         .status-badge { font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; margin-left: 5px; text-transform: uppercase; }
         .status-online { background: #e8f5e9; color: #2e7d32; }
         .status-offline { background: #efebe9; color: #4e342e; }
+        .group-badge-public { background: #e3f2fd; color: #0d47a1; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; text-transform: uppercase; }
+        .group-badge-protected { background: #fff3e0; color: #e65100; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; text-transform: uppercase; }
         .unread-indicator { background: #00a884; color: white; border-radius: 50%; padding: 2px 7px; font-size: 11px; font-weight: bold; float: right; animation: pulse 1.5s infinite; }
         
-        /* Interactive Group UI Elements */
+        /* Group UI */
         .group-creation-box { padding: 12px 16px; background: #f0f2f5; border-bottom: 1px solid #e9edef; display: flex; flex-direction: column; gap: 6px; }
         .group-creation-box input, .group-creation-box select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; outline: none; }
         .btn-group-create { background: #005c4b; color: white; border: none; padding: 6px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         
+        /* Permanent Discovery Section */
+        .discovery-section-title { font-size: 11px; font-weight: bold; color: #005c4b; padding: 10px 16px 5px 16px; background: #ffffff; letter-spacing: 0.5px; }
+        .groups-discovery-container { background: #ffffff; border-bottom: 2px dashed #e9edef; max-height: 180px; overflow-y: auto; }
+
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.15); }
@@ -73,8 +79,13 @@
                 <button id="create-group-btn" class="btn-group-create">Build Room</button>
             </div>
 
+            <div class="discovery-section-title">GLOBAL DISCOVERY GROUPS (PERMANENT)</div>
+            <div class="groups-discovery-container" id="global-groups-discovery">
+                </div>
+
             <div class="search-box">
-                <input type="text" id="search-users" placeholder="Search a Name or Chat Group...">
+                <label style="font-size: 11px; font-weight: bold; color: #005c4b; display: block; margin-bottom: 4px;">FIND VERIFIED USERS</label>
+                <input type="text" id="search-users" placeholder="Search a user's full name...">
             </div>
             
             <div class="user-list" id="users-container"></div>
@@ -85,7 +96,7 @@
                 <div style="font-size: 64px; margin-bottom: 15px;">✨</div>
                 <h2 style="color: #005c4b; font-size: 28px; font-weight: 700; margin-bottom: 8px;">Welcome to Mwamini Chat Web</h2>
                 <p style="color: #667781; font-size: 15px; max-width: 440px; line-height: 1.6; margin: 0 auto;">
-                    Search a verified person or enter a chat group token to launch an encrypted communication thread.
+                    Select an open global room or query a verified connection profile to establish an encrypted workspace stream.
                 </p>
             </div>
 
